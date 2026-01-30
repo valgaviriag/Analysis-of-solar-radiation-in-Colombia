@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interactivo de Radiación Solar en Colombia</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .map-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container mx-auto px-4 py-4">
+    <div class="container mx-auto px-4 py-2">
+        <!-- Ultra-Compact Header -->
+        <div class="mb-4 flex items-center justify-between border-b border-white/20 pb-2">
+            <div>
+                <h1 class="text-2xl font-bold text-white leading-none">
+                    Radiación Solar en Colombia
+                </h1>
+                <p class="text-sm text-gray-300 leading-none mt-1">
+                    Interpolación Kriging | Fuente: IDEAM
+                </p>
+            </div>
+            
+            <div class="flex gap-4">
+                <!-- Month Selector -->
+                <div class="relative inline-block w-48">
+                    <select id="month-selector" onchange="updateMap(this.value)" 
+                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
+                        <option value="ENE" selected>Enero</option>
+                        <option value="FEB">Febrero</option>
+                        <option value="MAR">Marzo</option>
+                        <option value="ABR">Abril</option>
+                        <option value="MAY">Mayo</option>
+                        <option value="JUN">Junio</option>
+                        <option value="JUL">Julio</option>
+                        <option value="AGO">Agosto</option>
+                        <option value="SEP">Septiembre</option>
+                        <option value="OCT">Octubre</option>
+                        <option value="NOV">Noviembre</option>
+                        <option value="DIC">Diciembre</option>
+                        <option value="Annual">Promedio Anual</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-500">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+
+                <!-- Region Selector -->
+                <div class="relative inline-block w-40">
+                    <select id="region-selector" onchange="updateRegion(this.value)"
+                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
+                        <option value="COL" selected>Toda Colombia</option>
+                        <option value="CARIBE">Región Caribe</option>
+                        <option value="ANDINA">Región Andina</option>
+                        <option value="PACIFICO">Región Pacífico</option>
+                        <option value="ORINOQUIA">Región Orinoquía</option>
+                        <option value="AMAZONIA">Región Amazonía</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-500">
+                        <i class="fas fa-map"></i>
+                    </div>
+                </div>
+
+                <!-- Stations Toggle -->
+                <button id="btn-stations" onclick="toggleStations()" 
+                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 text-sm font-medium transition duration-200">
+                    <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                    <span>Ocultar Estaciones</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-[2.1rem] items-stretch">
+            <!-- Map Container -->
+            <div class="lg:col-span-3 flex">
+                <div class="map-container p-[2.1rem] w-full flex flex-col justify-center">
+                    <div id="map-container" style="height: 510px;"></div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="flex flex-col h-full gap-[2.1rem]">
+                <!-- Statistics Card -->
+                <div class="glass-card rounded-xl p-[2.1rem] flex-[1.9] flex flex-col">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                        <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
+                        Estadísticas
+                    </h3>
+                    <div id="stats-container">
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                            <p class="text-xs">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Information Card -->
+                <div class="glass-card rounded-xl p-[2.1rem] flex-1 flex flex-col">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                        Información
+                    </h3>
+                    <div class="text-[13.3px] text-gray-600 grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div class="flex gap-1">
+                            <i class="fas fa-map-marker-alt text-red-500"></i>
+                            <span>167 Estaciones</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <i class="fas fa-calendar text-blue-500"></i>
+                            <span>Multianual</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <i class="fas fa-ruler text-purple-500"></i>
+                            <span>kWh/m²</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <i class="fas fa-cogs text-orange-500"></i>
+                            <span>Kriging</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <h4 class="text-[11px] font-bold text-gray-700 uppercase mb-1">Método Kriging</h4>
+                        <p class="text-[10px] text-gray-500 leading-relaxed italic">
+                            Interpolación geoestadística que estima valores en áreas sin estaciones basándose en la autocorrelación espacial de los datos medidos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        let currentMonth = 'ENE';
+        let stationsVisible = true;
+        let currentRegion = 'COL';
+        
+        // Region coordinates (approximate center and zoom for Plotly geo)
+        const regions = {
+            'COL': { lat: 4.5, lon: -76.0, zoom: 4.3 }, // Centrado para incluir San Andrés y el sur
+            'CARIBE': { lat: 10.5, lon: -74.0, zoom: 6 },
+            'ANDINA': { lat: 5.5, lon: -74.5, zoom: 6 },
+            'PACIFICO': { lat: 5.0, lon: -77.0, zoom: 6 },
+            'ORINOQUIA': { lat: 5.0, lon: -70.0, zoom: 6 },
+            'AMAZONIA': { lat: 0.5, lon: -72.0, zoom: 5.5 }
+        };
+        
+        // Initialize map
+        async function initializeMap() {
+            try {
+                // Show loading state first
+                document.getElementById('map-container').innerHTML = `
+                    <div class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                            <p class="text-gray-600">Cargando base de datos...</p>
+                        </div>
+                    </div>
+                `;
+
+                const response = await fetch('radiation_data.csv');
+                if (!response.ok) throw new Error('No se pudo cargar el archivo CSV');
+                const text = await response.text();
+                window.globalData = parseCSV(text);
+                
+                await updateMap('ENE');
+            } catch (error) {
+                console.error("Error initializing:", error);
+                document.getElementById('map-container').innerHTML = `
+                    <div class="flex items-center justify-center h-full text-red-500">
+                        <p><i class="fas fa-exclamation-circle mr-2"></i>Error cargando datos: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Simple CSV Parser
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const result = [];
+            
+            for(let i=1; i<lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                
+                const cleanRow = [];
+                let inQuotes = false;
+                let current = '';
+                for (let char of line) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        cleanRow.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                cleanRow.push(current.trim());
+                
+                if (cleanRow.length < 25) continue;
+
+                const cleanStr = (s) => s.replace(/^"|"$/g, '').trim();
+
+                result.push({
+                    name: cleanStr(cleanRow[1]),
+                    dept: cleanStr(cleanRow[3]),
+                    lat: parseFloat(cleanRow[4]),
+                    lon: parseFloat(cleanRow[5]),
+                    ENE: parseFloat(cleanRow[8]),
+                    FEB: parseFloat(cleanRow[9]),
+                    MAR: parseFloat(cleanRow[10]),
+                    ABR: parseFloat(cleanRow[11]),
+                    MAY: parseFloat(cleanRow[12]),
+                    JUN: parseFloat(cleanRow[13]),
+                    JUL: parseFloat(cleanRow[14]),
+                    AGO: parseFloat(cleanRow[15]),
+                    SEP: parseFloat(cleanRow[16]),
+                    OCT: parseFloat(cleanRow[17]),
+                    NOV: parseFloat(cleanRow[18]),
+                    DIC: parseFloat(cleanRow[19]),
+                    Annual: parseFloat(cleanRow[24]) 
+                });
+            }
+            return result;
+        }
+
+        // Update map for selected month
+        async function updateMap(month) {
+            currentMonth = month;
+            const selector = document.getElementById('month-selector');
+            if (selector && selector.value !== month) selector.value = month;
+            
+            if (!window.globalData) return;
+
+            const data = window.globalData;
+            const lats = data.map(d => d.lat);
+            const lons = data.map(d => d.lon);
+            const vals = data.map(d => d[month]);
+            const texts = data.map(d => `${d.name} (${d.dept})<br>${d[month].toFixed(2)} kWh/m²`);
+
+            // Check for valid data for this month
+            const validData = vals.some(v => !isNaN(v));
+            if (!validData) {
+                console.warn('No valid data for month:', month);
+            }
+
+            // Create Heatmap / Density approximation
+            // Using Densitymapbox for better visual style on maps
+            const densityTrace = {
+                type: 'densitymapbox',
+                lat: lats,
+                lon: lons,
+                z: vals,
+                radius: 40, // Adjust for smoothing
+                colorscale: 'Jet',
+                opacity: 0.6,
+                name: 'Radiación',
+                exclude: true // Exclude from click/hover sometimes if needed, but we keep it
+            };
+
+            // Stations points
+            const stationsTrace = {
+                type: 'scattermapbox',
+                lat: lats,
+                lon: lons,
+                mode: 'markers',
+                marker: {
+                    size: 8,
+                    color: vals,
+                    colorscale: 'Jet',
+                    cmin: Math.min(...vals.filter(v => !isNaN(v))),
+                    cmax: Math.max(...vals.filter(v => !isNaN(v))),
+                    showscale: true,
+                    reversescale: false,
+                    line: {
+                        color: 'white',
+                        width: 1
+                    }
+                },
+                text: texts,
+                hoverinfo: 'text',
+                name: 'Estaciones',
+                visible: stationsVisible
+            };
+
+            const layout = {
+                mapbox: {
+                    style: 'carto-positron',
+                    center: regions[currentRegion] ? {lat: regions[currentRegion].lat, lon: regions[currentRegion].lon} : {lat: 4.5, lon: -76.0},
+                    zoom: regions[currentRegion] ? regions[currentRegion].zoom : 4.3,
+                    minzoom: 4.0, // Límite para NO alejarse más de Colombia
+                    maxzoom: 18   // Permite hacer zoom profundo para ver ciudades/detalles
+                },
+                margin: {t:0, b:0, l:0, r:0},
+                showlegend: false
+            };
+
+            const config = {
+                responsive: true, 
+                mapboxAccessToken: 'open-source-no-token-needed-for-carto',
+                scrollZoom: true, // Re-activar zoom para permitir exploración
+                displayModeBar: true // Mostrar herramientas para facilitar el zoom
+            };
+
+            Plotly.newPlot('map-container', [densityTrace, stationsTrace], layout, config).then(function() {
+                // Ensure region is respected if it was not handled by layout init (it is handled above)
+                // Nothing extra needed here for region, but maybe stats
+            });
+
+            // Update stats
+            // We pass the raw values array for stats calculation
+            updateStatsFromData([{z: [vals]}]); // Wrap in structure expected by helper
+        }
+        
+        // Calculate and Update Statistics client-side
+        function updateStatsFromData(data) {
+            try {
+                // Extract all Z values from the choropleth/heatmap traces
+                let values = [];
+                
+                data.forEach(trace => {
+                    if (trace.z) {
+                        // Flatten 2D arrays if necessary or just concat 1D
+                        const zFlat = trace.z.flat(Infinity).filter(v => v !== null && v !== undefined && !isNaN(v));
+                        values = values.concat(zFlat);
+                    }
+                });
+
+                if (values.length === 0) {
+                    document.getElementById('stats-container').innerHTML = '<p class="text-gray-500">No hay datos suficientes</p>';
+                    return;
+                }
+
+                values.sort((a, b) => a - b);
+                const count = values.length;
+                const min = values[0];
+                const max = values[count - 1];
+                const sum = values.reduce((a, b) => a + b, 0);
+                const mean = sum / count;
+                const range = max - min;
+                const p90 = getPercentile(values, 0.90);
+
+                // Median
+                const mid = Math.floor(count / 2);
+                const median = count % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+
+                // Std Dev for CV
+                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+                const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / count;
+                const std = Math.sqrt(avgSquareDiff);
+                const cv = (std / mean) * 100;
+
+                // Find extremes with department names
+                const maxStation = window.globalData.find(d => d[currentMonth] === max);
+                const minStation = window.globalData.find(d => d[currentMonth] === min);
+                
+                // Percentiles
+                const p25 = getPercentile(values, 0.25);
+                const p75 = getPercentile(values, 0.75);
+
+                // Solar Potential Classification
+                let potentialLabel = 'Moderado';
+                let potentialClass = 'bg-yellow-500';
+                
+                if (mean < 3.5) {
+                    potentialLabel = 'Bajo';
+                    potentialClass = 'bg-red-500';
+                } else if (mean >= 3.5 && mean < 4.5) {
+                    potentialLabel = 'Moderado';
+                    potentialClass = 'bg-yellow-500';
+                } else if (mean >= 4.5 && mean < 5.5) {
+                    potentialLabel = 'Alto';
+                    potentialClass = 'bg-green-500';
+                } else {
+                    potentialLabel = 'Muy Alto';
+                    potentialClass = 'bg-blue-600';
+                }
+                
+                document.getElementById('stats-container').innerHTML = `
+                    <div class="text-[11px] space-y-2 flex-1">
+                        <!-- Potential Badge Small -->
+                        <div class="${potentialClass} text-white rounded p-1.5 text-center font-bold mb-1.5 shadow-sm flex items-center justify-center gap-2">
+                            <span class="text-[9px] uppercase tracking-tighter opacity-80">Potencial:</span>
+                            <span>${potentialLabel}</span>
+                        </div>
+
+                        <!-- Data Grid -->
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                            <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <span class="text-gray-500">Prom:</span><span class="font-bold">${mean.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <span class="text-gray-500">Med:</span><span class="font-bold">${median.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <span class="text-gray-500">Mín:</span><span class="font-bold">${min.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <span class="text-gray-500">Máx:</span><span class="font-bold">${max.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Brecha:</span><span class="font-bold text-red-600">${range.toFixed(1)}</span>
+                            </div>
+                             <div class="flex justify-between">
+                                <span class="text-gray-500">Estab(CV):</span><span class="font-bold text-orange-600">${cv.toFixed(0)}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Eficiencia(P90):</span><span class="font-bold text-green-600">${p90.toFixed(1)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">P25-75:</span><span class="font-bold text-gray-700">${p25.toFixed(1)}-${p75.toFixed(1)}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-2 pt-2 border-t border-gray-100 text-[10px] leading-tight">
+                            <div class="flex justify-between">
+                                <span>Máx: <strong class="text-gray-800">${maxStation ? maxStation.dept : 'N/A'}</strong></span>
+                                <span>Mín: <strong class="text-gray-800">${minStation ? minStation.dept : 'N/A'}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error calculating stats:', error);
+                document.getElementById('stats-container').innerHTML = `<p class="text-red-500">Error calculando estadísticas</p>`;
+            }
+        }
+
+        // Helper: Calculate Percentile
+        function getPercentile(data, q) {
+            const pos = (data.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if ((data[base + 1] !== undefined)) {
+                return data[base] + rest * (data[base + 1] - data[base]);
+            } else {
+                return data[base];
+            }
+        }
+
+        // Toggle Stations Visibility
+        function toggleStations() {
+            stationsVisible = !stationsVisible;
+            updateStationsVisibility();
+            
+            // Update button text/style
+            const btn = document.getElementById('btn-stations');
+            const span = btn.querySelector('span');
+            const icon = btn.querySelector('i');
+            
+            if (stationsVisible) {
+                span.textContent = 'Ocultar Estaciones';
+                icon.classList.remove('text-gray-400');
+                icon.classList.add('text-red-500');
+                btn.classList.add('hover:border-red-500');
+                btn.classList.remove('hover:border-gray-500');
+            } else {
+                span.textContent = 'Mostrar Estaciones';
+                icon.classList.remove('text-red-500');
+                icon.classList.add('text-gray-400');
+                btn.classList.remove('hover:border-red-500');
+                btn.classList.add('hover:border-gray-500');
+            }
+        }
+
+        function updateStationsVisibility() {
+            const plotDiv = document.getElementById('map-container');
+            if (!plotDiv.data) return;
+
+            const update = {
+                visible: plotDiv.data.map(trace => {
+                    // Density map / heat map always visible
+                    if (trace.type === 'densitymapbox') return true;
+                    // Scatter (stations) toggleable
+                    if (trace.type === 'scattermapbox') return stationsVisible;
+                    return true;
+                })
+            };
+            
+            Plotly.restyle('map-container', update);
+        }
+
+        // Update Map Region (Zoom)
+        function updateRegion(region, updateSelect = true) {
+            currentRegion = region;
+            if (updateSelect) document.getElementById('region-selector').value = region;
+
+            const view = regions[region];
+            if (!view) return;
+
+            const update = {
+                'mapbox.center.lat': view.lat,
+                'mapbox.center.lon': view.lon,
+                'mapbox.zoom': view.zoom 
+            };
+            
+            Plotly.relayout('map-container', update);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeMap);
+    </script>
+</body>
+</html>
