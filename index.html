@@ -297,8 +297,12 @@
                 plot_bgcolor: 'rgba(0,0,0,0)'
             };
 
-            Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
-            updateStats(validVals, month);
+            if (monthValues.length > 0) {
+                Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
+                updateStats(monthValues, month);
+            } else {
+                console.warn("No hay datos para el mes:", month);
+            }
         }
 
         function updateStats(values, month) {
