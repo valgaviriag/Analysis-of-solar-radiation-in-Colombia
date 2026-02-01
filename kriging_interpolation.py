@@ -4,45 +4,51 @@ from pykrige.ok import OrdinaryKriging
 import json
 import os
 import warnings
+from shapely.geometry import shape, Point
+import geopandas as gpd
 
-# Ignorar advertencias de matrices mal condicionadas
+# Ignorar advertencias
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def perform_full_kriging(csv_path, output_json):
+def perform_enhanced_kriging(csv_path, geojson_path, output_json):
     print(f"Leyendo datos desde {csv_path}...")
     df = pd.read_csv(csv_path)
     
-    # Columnas a interpolar
+    # Cargar GeoJSON de Colombia para el recorte
+    print(f"Cargando máscara geográfica desde {geojson_path}...")
+    colombia_gdf = gpd.read_file(geojson_path)
+    colombia_geom = colombia_gdf.geometry.union_all() # Unir partes si es multipolígono
+    
     months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual_Average']
-    
-    # Limpieza inicial: Coordenadas válidas
     df = df.dropna(subset=['Latitud', 'Longitud'])
-    
-    # Manejar duplicados: Si hay varias estaciones en la misma coordenada, promediamos sus valores
-    # Esto evita el error de "Singular Matrix" en Kriging
     df_clean = df.groupby(['Latitud', 'Longitud'])[months].mean().reset_index()
     
-    print(f"Datos limpios: {len(df_clean)} ubicaciones únicas.")
-    
-    # Definir límites de la cuadrícula (Colombia aproximado)
-    # 50x65 es suficiente para una visualización fluida y ligera
-    grid_lon = np.linspace(-82, -66, 50) 
-    grid_lat = np.linspace(-4, 13, 65)
+    # Aumentar resolución (80x100 para balancear detalle/peso)
+    grid_lon = np.linspace(-82, -66, 80) 
+    grid_lat = np.linspace(-4, 13, 100)
     
     results = {
-        "lon": [round(x, 2) for x in grid_lon.tolist()],
-        "lat": [round(y, 2) for y in grid_lat.tolist()],
-        "data": {}
+        "lon": [round(x, 3) for x in grid_lon.tolist()],
+        "lat": [round(y, 3) for y in grid_lat.tolist()],
+        "data": {},
+        "mask": [] # Guardaremos una matriz binaria (1 dentro, 0 fuera)
     }
     
+    # 1. Calcular Máscara (Puntos dentro de Colombia)
+    print("Calculando máscara de recorte...")
+    mask_grid = np.zeros((len(grid_lat), len(grid_lon)), dtype=int)
+    for i, lat in enumerate(grid_lat):
+        for j, lon in enumerate(grid_lon):
+            if colombia_geom.contains(Point(lon, lat)):
+                mask_grid[i, j] = 1
+    
+    results["mask"] = mask_grid.tolist()
+    
+    # 2. Ejecutar Kriging por cada mes
     for month in months:
-        if month not in df_clean.columns:
-            continue
-            
-        # Filtrar NaNs para este mes específico
+        if month not in df_clean.columns: continue
         valid_data = df_clean.dropna(subset=[month])
-        if len(valid_data) < 3: # Necesitamos al menos 3 puntos para Kriging
-            continue
+        if len(valid_data) < 3: continue
             
         print(f"Interpolando {month}...")
         x = valid_data['Longitud'].values
@@ -50,38 +56,42 @@ def perform_full_kriging(csv_path, output_json):
         z = valid_data[month].values
         
         try:
-            # Ordinary Kriging con modelo esférico (estándar de la industria)
-            OK = OrdinaryKriging(
-                x, y, z,
-                variogram_model='spherical',
-                verbose=False,
-                enable_plotting=False
-            )
+            OK = OrdinaryKriging(x, y, z, variogram_model='spherical')
+            z_grid, _ = OK.execute('grid', grid_lon, grid_lat)
             
-            z_grid, ss_grid = OK.execute('grid', grid_lon, grid_lat)
-            
-            # Comprimir: Redondear a 2 decimales y convertir a lista
-            # Reemplazar valores negativos (posibles en Kriging) por el mínimo real
-            min_val = float(z.min())
+            # Aplicar máscara y redondear
             grid_final = np.round(z_grid.data, 2)
-            grid_final[grid_final < min_val] = min_val
+            # Los puntos fuera de la máscara se ponen en null para reducir peso y visibilidad
+            # Usaremos null en el JSON para que JS lo maneje
+            masked_data = []
+            for i in range(len(grid_lat)):
+                row = []
+                for j in range(len(grid_lon)):
+                    if mask_grid[i, j] == 1:
+                        val = grid_final[i, j]
+                        if val < z.min(): val = z.min()
+                        row.append(float(val))
+                    else:
+                        row.append(None)
+                masked_data.append(row)
             
-            results["data"][month] = grid_final.tolist()
+            results["data"][month] = masked_data
         except Exception as e:
             print(f"Error en {month}: {e}")
             
     print(f"Guardando en {output_json}...")
     with open(output_json, 'w') as f:
-        json.dump(results, f)
+        # Usamos separadores compactos para reducir peso del JSON
+        json.dump(results, f, separators=(',', ':'))
     
-    size_kb = os.path.getsize(output_json) / 1024
-    print(f"¡Kriging completado! Tamaño: {size_kb:.1f} KB")
+    print(f"¡Kriging Mejorado completado! Tamaño: {os.path.getsize(output_json)/1024:.1f} KB")
 
 if __name__ == "__main__":
     input_csv = '/home/vale/projects/Portofolio/Projects/Radiation/radiation_data.csv'
+    input_geo = '/home/vale/projects/Portofolio/Projects/Radiation/colombia.json'
     output_js = '/home/vale/projects/Portofolio/Projects/Radiation/kriging_data.json'
     
-    if os.path.exists(input_csv):
-        perform_full_kriging(input_csv, output_js)
+    if os.path.exists(input_csv) and os.path.exists(input_geo):
+        perform_enhanced_kriging(input_csv, input_geo, output_js)
     else:
-        print(f"Error: No se encontró el archivo {input_csv}")
+        print("Faltan archivos necesarios.")

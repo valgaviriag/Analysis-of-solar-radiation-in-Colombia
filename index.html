@@ -3,54 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interactivo de Radiación Solar en Colombia</title>
+    <title>Solar Colombia | Dashboard de Radiación</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --accent: #fbbf24;
+            --accent-glow: rgba(251, 191, 36, 0.3);
+        }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: var(--bg-dark);
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
             min-height: 100vh;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .map-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
         }
         .text-gradient {
-            background: linear-gradient(to right, #FFFF00 0%, #FFA500 50%, #FF8C00 85%, #FF4D4D 100%);
+            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
+        .stats-badge {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        select, button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #map-container {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 <base target="_blank">
 </head>
-<body>
-    <div class="container mx-auto px-4 py-4">
-    <div class="container mx-auto px-4 py-2">
-        <!-- Ultra-Compact Header -->
-        <div class="mb-4 flex items-center justify-between border-b border-white/20 pb-2">
-            <div>
-                <h1 class="text-3xl font-black text-gradient leading-none pb-1" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
-                    Radiación Solar en Colombia
-                </h1>
-                <p class="text-sm font-bold text-gradient leading-none mt-1" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));">
-                    Interpolación Kriging | Fuente: IDEAM
-                </p>
+<body class="p-4 md:p-6">
+    <div class="max-w-[1600px] mx-auto space-y-6">
+        <!-- Premium Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-6 pb-2 border-b border-white/10">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fas fa-sun text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">
+                        <span class="text-white">Solar</span><span class="text-gradient">Colombia</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm font-medium">Interpolación Kriging • Geoprocesamiento IDEAM</p>
+                </div>
             </div>
             
-            <div class="flex gap-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Play Button -->
+                <button id="btn-play" onclick="togglePlay()" 
+                        class="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-full font-semibold text-sm transition-all duration-300">
+                    <i class="fas fa-play"></i>
+                    <span>Reproducir Año</span>
+                </button>
+
                 <!-- Month Selector -->
-                <div class="relative inline-block w-48">
+                <div class="relative min-w-[180px]">
                     <select id="month-selector" onchange="updateMap(this.value)" 
-                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
-                        <option value="ENE" selected>Enero</option>
+                            class="w-full bg-slate-800 text-white border border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold appearance-none cursor-pointer hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                        <option value="ENE">Enero</option>
                         <option value="FEB">Febrero</option>
                         <option value="MAR">Marzo</option>
                         <option value="ABR">Abril</option>
@@ -64,80 +93,74 @@
                         <option value="DIC">Diciembre</option>
                         <option value="Annual">Promedio Anual</option>
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-500">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
                 </div>
 
-                <!-- Play Button -->
-                <button id="btn-play" onclick="togglePlay()" 
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 text-sm font-medium transition duration-200">
-                    <i class="fas fa-play text-green-500 mr-2"></i>
-                    <span>Reproducir Año</span>
-                </button>
-
-                <!-- Stations Toggle -->
+                <!-- Toggle Stations -->
                 <button id="btn-stations" onclick="toggleStations()" 
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 text-sm font-medium transition duration-200">
-                    <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
-                    <span>Ocultar Estaciones</span>
+                        class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-full font-semibold text-sm transition-all">
+                    <i id="station-icon" class="fas fa-location-dot text-red-500"></i>
+                    <span>Estaciones</span>
                 </button>
             </div>
-        </div>
+        </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-[2.1rem] items-stretch">
-            <!-- Map Container -->
-            <div class="lg:col-span-3 flex">
-                <div class="map-container p-[2.1rem] w-full flex flex-col justify-center">
-                    <div id="map-container" style="height: 510px;"></div>
+        <main class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-160px)] min-h-[600px]">
+            <!-- Map Area -->
+            <div class="lg:col-span-3 relative group">
+                <div id="map-container" class="w-full h-full bg-slate-900 border border-white/5"></div>
+                <!-- Legend Floating -->
+                <div class="absolute bottom-8 left-8 glass-card px-4 py-3 flex flex-col gap-2 shadow-2xl pointer-events-none">
+                    <span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Radiación (kWh/m²)</span>
+                    <div class="h-2 w-48 bg-gradient-to-r from-blue-600 via-yellow-400 to-red-600 rounded-full"></div>
+                    <div class="flex justify-between text-[10px] font-bold text-slate-300">
+                        <span>1.5</span>
+                        <span>4.0</span>
+                        <span>6.5+</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Sidebar -->
-            <div class="flex flex-col h-full gap-[2.1rem]">
+            <!-- Dashboard Sidebar -->
+            <div class="flex flex-col gap-6">
                 <!-- Statistics Card -->
-                <div class="glass-card rounded-xl p-[2.1rem] flex-[2.2] flex flex-col">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
-                        Estadísticas
-                    </h3>
-                    <div id="stats-container">
-                        <div class="text-center text-gray-500 py-4">
-                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                            <p class="text-xs">Cargando...</p>
+                <section class="glass-card p-6 flex-1 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold flex items-center gap-2">
+                            <i class="fas fa-chart-line text-orange-500"></i>
+                            Análisis Espacial
+                        </h3>
+                    </div>
+                    
+                    <div id="stats-container" class="space-y-6 overflow-y-auto pr-2">
+                        <div class="flex justify-center py-12">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500"></div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Information Card -->
-                <div class="glass-card rounded-xl p-[1.62rem] flex-[0.77] flex flex-col">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                        Información
+                <!-- Technical Details -->
+                <section class="glass-card p-6 min-h-[140px]">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fas fa-microchip"></i>
+                        Metodología
                     </h3>
-                    <div class="text-[13.65px] text-gray-600 grid grid-cols-2 gap-x-4 gap-y-2">
-                        <div class="flex gap-1">
-                            <i class="fas fa-map-marker-alt text-red-500"></i>
-                            <span>167 Estaciones</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="stats-badge p-3 rounded-xl text-center">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold">Modelo</p>
+                            <p class="text-white text-xs font-bold mt-1">OK Spherical</p>
                         </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-calendar text-blue-500"></i>
-                            <span>Multianual</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-ruler text-purple-500"></i>
-                            <span>kWh/m²</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-cogs text-orange-500"></i>
-                            <span>Kriging</span>
+                        <div class="stats-badge p-3 rounded-xl text-center">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold">Malla</p>
+                            <p class="text-white text-xs font-bold mt-1">8,000 Puntos</p>
                         </div>
                     </div>
-                </div>
+                    <p class="text-[10px] text-slate-500 mt-4 leading-relaxed italic">
+                        Los valores fuera del límite nacional han sido removidos mediante máscara geográfica para precisión territorial.
+                    </p>
+                </section>
             </div>
-        </div>
-
-
+        </main>
     </div>
 
     <script>
@@ -145,375 +168,199 @@
         let stationsVisible = true;
         let playInterval = null;
         let isPlaying = false;
-        
         const monthsOrder = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual'];
 
-        // Initialize map
         async function initializeMap() {
             try {
-                // Show loading state first
-                document.getElementById('map-container').innerHTML = `
-                    <div class="flex items-center justify-center h-full">
-                        <div class="text-center">
-                            <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
-                            <p class="text-gray-600">Cargando base de datos e interpolación...</p>
-                        </div>
-                    </div>
-                `;
-
-                // Cargar datos de estaciones
-                const responseCsv = await fetch('radiation_data.csv');
-                if (!responseCsv.ok) throw new Error('No se pudo cargar el archivo CSV');
-                const csvText = await responseCsv.text();
+                // Cargar datos
+                const [csvRes, krigingRes] = await Promise.all([
+                    fetch('radiation_data.csv'),
+                    fetch('kriging_data.json')
+                ]);
+                
+                if (!csvRes.ok || !krigingRes.ok) throw new Error('Error al cargar recursos');
+                
+                const csvText = await csvRes.text();
                 window.globalData = parseCSV(csvText);
-
-                // Cargar datos de Kriging pre-calculados
-                const responseKriging = await fetch('kriging_data.json');
-                if (!responseKriging.ok) throw new Error('No se pudo cargar el archivo Kriging JSON');
-                window.krigingData = await responseKriging.json();
+                window.krigingData = await krigingRes.json();
                 
                 await updateMap('ENE');
             } catch (error) {
-                console.error("Error initializing:", error);
+                console.error("Init Error:", error);
                 document.getElementById('map-container').innerHTML = `
-                    <div class="flex items-center justify-center h-full text-red-500">
-                        <p><i class="fas fa-exclamation-circle mr-2"></i>Error cargando datos: ${error.message}</p>
-                    </div>
-                `;
+                    <div class="flex flex-col items-center justify-center h-full text-red-400 p-8 text-center">
+                        <i class="fas fa-triangle-exclamation text-4xl mb-4"></i>
+                        <p class="font-bold">Error de Inicialización</p>
+                        <p class="text-xs opacity-60 mt-2">${error.message}</p>
+                    </div>`;
             }
         }
-        
-        // Simple CSV Parser
+
         function parseCSV(csv) {
             const lines = csv.split('\n');
             const result = [];
-            
             for(let i=1; i<lines.length; i++) {
                 const line = lines[i].trim();
                 if(!line) continue;
-                
-                const cleanRow = [];
-                let inQuotes = false;
-                let current = '';
-                for (let char of line) {
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        cleanRow.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                cleanRow.push(current.trim());
-                
-                if (cleanRow.length < 25) continue;
-
-                const cleanStr = (s) => s.replace(/^"|"$/g, '').trim();
-
+                const row = line.split(','); // Simplified for internal logic
+                if (row.length < 25) continue;
                 result.push({
-                    name: cleanStr(cleanRow[1]),
-                    dept: cleanStr(cleanRow[3]),
-                    lat: parseFloat(cleanRow[4]),
-                    lon: parseFloat(cleanRow[5]),
-                    ENE: parseFloat(cleanRow[8]),
-                    FEB: parseFloat(cleanRow[9]),
-                    MAR: parseFloat(cleanRow[10]),
-                    ABR: parseFloat(cleanRow[11]),
-                    MAY: parseFloat(cleanRow[12]),
-                    JUN: parseFloat(cleanRow[13]),
-                    JUL: parseFloat(cleanRow[14]),
-                    AGO: parseFloat(cleanRow[15]),
-                    SEP: parseFloat(cleanRow[16]),
-                    OCT: parseFloat(cleanRow[17]),
-                    NOV: parseFloat(cleanRow[18]),
-                    DIC: parseFloat(cleanRow[19]),
-                    Annual: parseFloat(cleanRow[24]),
-                    Annual_Average: parseFloat(cleanRow[24])
+                    name: row[1], dept: row[3],
+                    lat: parseFloat(row[4]), lon: parseFloat(row[5]),
+                    ENE: parseFloat(row[8]), FEB: parseFloat(row[9]),
+                    MAR: parseFloat(row[10]), ABR: parseFloat(row[11]),
+                    MAY: parseFloat(row[12]), JUN: parseFloat(row[13]),
+                    JUL: parseFloat(row[14]), AGO: parseFloat(row[15]),
+                    SEP: parseFloat(row[16]), OCT: parseFloat(row[17]),
+                    NOV: parseFloat(row[18]), DIC: parseFloat(row[19]),
+                    Annual: parseFloat(row[24])
                 });
             }
             return result;
         }
 
-        // Update map for selected month
         async function updateMap(month) {
             currentMonth = month;
             const selector = document.getElementById('month-selector');
-            if (selector && selector.value !== month) selector.value = month;
-            
-            if (!window.globalData || !window.krigingData) return;
+            if (selector) selector.value = month;
 
-            const data = window.globalData;
-            const lats = data.map(d => d.lat);
-            const lons = data.map(d => d.lon);
-            const vals = data.map(d => d[month]);
-            const texts = data.map(d => `${d.name} (${d.dept})<br>${typeof d[month] === 'number' ? d[month].toFixed(2) : 'N/A'} kWh/m²`);
-
-            // Mapear nombre de mes de la interfaz al nombre en el JSON
             const dataKey = (month === 'Annual') ? 'Annual_Average' : month;
             const krigingZ = window.krigingData.data[dataKey];
 
-            if (!krigingZ) {
-                console.warn('No se encontraron datos de Kriging para:', dataKey);
-                return;
-            }
-
-            // Preparar datos para la interpolación visual
-            // Aplanamos la malla para usar densitymapbox, que es mucho más robusto en navegadores
-            const flatLats = [];
-            const flatLons = [];
-            const flatZ = [];
-            
+            // Preparar Malla Filtrada
+            const flatLats = [], flatLons = [], flatZ = [];
             for (let i = 0; i < window.krigingData.lat.length; i++) {
                 for (let j = 0; j < window.krigingData.lon.length; j++) {
-                    flatLats.push(window.krigingData.lat[i]);
-                    flatLons.push(window.krigingData.lon[j]);
-                    flatZ.push(krigingZ[i][j]);
+                    const val = krigingZ[i][j];
+                    if (val !== null) {
+                        flatLats.push(window.krigingData.lat[i]);
+                        flatLons.push(window.krigingData.lon[j]);
+                        flatZ.push(val);
+                    }
                 }
             }
 
-            const allVals = vals.filter(v => !isNaN(v));
-            const minZ = Math.min(...allVals);
-            const maxZ = Math.max(...allVals);
+            const stations = window.globalData;
+            const validVals = stations.map(s => s[month]).filter(v => !isNaN(v));
+            const cMin = Math.min(...validVals), cMax = Math.max(...validVals);
 
-            // Capa de Interpolación (usando densitymapbox sobre la malla calculada)
             const krigingTrace = {
                 type: 'densitymapbox',
-                lat: flatLats,
-                lon: flatLons,
-                z: flatZ,
-                radius: 25, 
+                lat: flatLats, lon: flatLons, z: flatZ,
+                radius: 15, // Radio ajustado para el nuevo zoom
                 colorscale: 'Jet',
-                opacity: 0.6,
+                opacity: 0.8,
                 showscale: false,
-                hoverinfo: 'none',
-                name: 'Kriging'
+                hoverinfo: 'none'
             };
 
-            // Stations points
             const stationsTrace = {
                 type: 'scattermapbox',
-                lat: lats,
-                lon: lons,
+                lat: stations.map(s => s.lat), lon: stations.map(s => s.lon),
                 mode: 'markers',
                 marker: {
-                    size: 8,
-                    color: vals,
+                    size: 6,
+                    color: stations.map(s => s[month]),
                     colorscale: 'Jet',
-                    cmin: minZ,
-                    cmax: maxZ,
+                    cmin: cMin, cmax: cMax,
                     showscale: true,
-                    reversescale: false,
-                    line: {
-                        color: 'white',
-                        width: 1
-                    },
+                    line: { color: 'rgba(255,255,255,0.2)', width: 0.5 },
                     colorbar: {
-                        title: 'kWh/m²',
-                        thickness: 15,
-                        titleside: 'right',
-                        outlinecolor: 'rgba(0,0,0,0)'
+                        thickness: 10, len: 0.5,
+                        y: 0.5, yanchor: 'middle',
+                        tickfont: { color: '#94a3b8', size: 10 },
+                        title: { text: 'kWh/m²', font: { color: '#94a3b8', size: 10 } }
                     }
                 },
-                text: texts,
+                text: stations.map(s => `<b>${s.name}</b><br>${s.dept}<br>${s[month].toFixed(2)} kWh/m²`),
                 hoverinfo: 'text',
-                name: 'Estaciones',
                 visible: stationsVisible
             };
 
             const layout = {
                 mapbox: {
-                    style: 'carto-positron',
-                    center: {lat: 4.5, lon: -76.0},
-                    zoom: 4.3,
-                    minzoom: 4.0,
-                    maxzoom: 18
+                    style: 'carto-darkmatter', // Estilo Premium Oscuro
+                    center: { lat: 4.2, lon: -74.5 }, // Centro optimizado
+                    zoom: 4.0 // Zoom con más aire
                 },
-                margin: {t:0, b:0, l:0, r:0},
-                showlegend: false
+                margin: { t: 0, b: 0, l: 0, r: 0 },
+                showlegend: false,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
             };
 
-            const config = {
-                responsive: true, 
-                mapboxAccessToken: 'open-source-no-token-needed-for-carto',
-                scrollZoom: true,
-                displayModeBar: false
-            };
-
-            Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, config);
-
-            // Update stats
-            updateStatsFromData([{z: [vals]}]); 
+            Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
+            updateStats(validVals, month);
         }
 
-        // Animación Temporal
+        function updateStats(values, month) {
+            values.sort((a, b) => a - b);
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const min = values[0], max = values[values.length - 1];
+            const p90 = values[Math.floor(values.length * 0.9)];
+            
+            let potential = 'Moderado';
+            let color = 'text-yellow-400';
+            if (mean > 5.0) { potential = 'Excelente'; color = 'text-emerald-400'; }
+            else if (mean > 4.2) { potential = 'Alto'; color = 'text-orange-400'; }
+
+            document.getElementById('stats-container').innerHTML = `
+                <div class="stats-badge p-4 rounded-2xl mb-4 text-center">
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-1">Potencial Solar</p>
+                    <p class="text-2xl font-black ${color}">${potential}</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p class="text-[10px] text-slate-400 uppercase font-bold">Promedio</p>
+                        <p class="text-xl font-bold">${mean.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p class="text-[10px] text-slate-400 uppercase font-bold">Máximo</p>
+                        <p class="text-xl font-bold">${max.toFixed(2)}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mt-4">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Escala de Eficiencia (P90)</span>
+                        <span class="font-bold text-emerald-400">${p90.toFixed(2)}</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500" style="width: ${(p90/7*100).toFixed(0)}%"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Variabilidad (Mín-Máx)</span>
+                        <span class="font-bold text-orange-400">${(max-min).toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         function togglePlay() {
             const btn = document.getElementById('btn-play');
-            const span = btn.querySelector('span');
-            const icon = btn.querySelector('i');
-
+            isPlaying = !isPlaying;
             if (isPlaying) {
-                clearInterval(playInterval);
-                isPlaying = false;
-                span.textContent = 'Reproducir Año';
-                icon.className = 'fas fa-play text-green-500 mr-2';
-            } else {
-                isPlaying = true;
-                span.textContent = 'Pausar';
-                icon.className = 'fas fa-pause text-red-500 mr-2';
-                
+                btn.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+                btn.classList.remove('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+                btn.innerHTML = '<i class="fas fa-pause"></i><span>Pausar</span>';
                 playInterval = setInterval(() => {
-                    let currentIndex = monthsOrder.indexOf(currentMonth);
-                    let nextIndex = (currentIndex + 1) % (monthsOrder.length - 1); 
-                    updateMap(monthsOrder[nextIndex]);
+                    let next = (monthsOrder.indexOf(currentMonth) + 1) % 12;
+                    updateMap(monthsOrder[next]);
                 }, 1500);
-            }
-        }
-        
-        // Calculate and Update Statistics client-side
-        function updateStatsFromData(data) {
-            try {
-                let values = [];
-                data.forEach(trace => {
-                    if (trace.z) {
-                        const zFlat = trace.z.flat(Infinity).filter(v => v !== null && v !== undefined && !isNaN(v));
-                        values = values.concat(zFlat);
-                    }
-                });
-
-                if (values.length === 0) {
-                    document.getElementById('stats-container').innerHTML = '<p class="text-gray-500">No hay datos suficientes</p>';
-                    return;
-                }
-
-                values.sort((a, b) => a - b);
-                const count = values.length;
-                const min = values[0];
-                const max = values[count - 1];
-                const sum = values.reduce((a, b) => a + b, 0);
-                const mean = sum / count;
-                const range = max - min;
-                const p90 = getPercentile(values, 0.90);
-                const mid = Math.floor(count / 2);
-                const median = count % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
-                const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / count;
-                const std = Math.sqrt(avgSquareDiff);
-                const cv = (std / mean) * 100;
-
-                const maxStation = window.globalData.find(d => d[currentMonth] === max);
-                const minStation = window.globalData.find(d => d[currentMonth] === min);
-                const p25 = getPercentile(values, 0.25);
-                const p75 = getPercentile(values, 0.75);
-
-                let potentialLabel = 'Moderado';
-                let potentialClass = 'bg-yellow-500';
-                
-                if (mean < 3.5) {
-                    potentialLabel = 'Bajo';
-                    potentialClass = 'bg-red-500';
-                } else if (mean >= 3.5 && mean < 4.5) {
-                    potentialLabel = 'Moderado';
-                    potentialClass = 'bg-yellow-500';
-                } else if (mean >= 4.5 && mean < 5.5) {
-                    potentialLabel = 'Alto';
-                    potentialClass = 'bg-green-500';
-                } else {
-                    potentialLabel = 'Muy Alto';
-                    potentialClass = 'bg-blue-600';
-                }
-                
-                document.getElementById('stats-container').innerHTML = `
-                    <div class="text-[12.7px] space-y-2 flex-1">
-                        <div class="${potentialClass} text-white rounded py-[7.92px] px-1.5 text-center font-bold mb-1.5 shadow-sm flex items-center justify-center gap-2">
-                            <span class="text-[10.4px] uppercase tracking-tighter opacity-80">Potencial:</span>
-                            <span>${potentialLabel}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-[6.93px]">
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Prom:</span><span class="font-bold">${mean.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Med:</span><span class="font-bold">${median.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Mín:</span><span class="font-bold">${min.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Máx:</span><span class="font-bold">${max.toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11.55px]">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Brecha:</span><span class="font-bold text-red-600">${range.toFixed(1)}</span>
-                            </div>
-                             <div class="flex justify-between">
-                                <span class="text-gray-500">Estab(CV):</span><span class="font-bold text-orange-600">${cv.toFixed(0)}%</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Eficiencia(P90):</span><span class="font-bold text-green-600">${p90.toFixed(1)}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">P25-75:</span><span class="font-bold text-gray-700">${p25.toFixed(1)}-${p75.toFixed(1)}</span>
-                            </div>
-                        </div>
-                        <div class="mt-2 pt-2 border-t border-gray-100 text-[11.55px] leading-tight">
-                            <div class="flex justify-between">
-                                <span>Máx: <strong class="text-gray-800">${maxStation ? maxStation.dept : 'N/A'}</strong></span>
-                                <span>Mín: <strong class="text-gray-800">${minStation ? minStation.dept : 'N/A'}</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } catch (error) {
-                console.error('Error calculating stats:', error);
-                document.getElementById('stats-container').innerHTML = `<p class="text-red-500">Error calculando estadísticas</p>`;
-            }
-        }
-
-        function getPercentile(data, q) {
-            const pos = (data.length - 1) * q;
-            const base = Math.floor(pos);
-            const rest = pos - base;
-            if ((data[base + 1] !== undefined)) {
-                return data[base] + rest * (data[base + 1] - data[base]);
             } else {
-                return data[base];
+                clearInterval(playInterval);
+                btn.classList.remove('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+                btn.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+                btn.innerHTML = '<i class="fas fa-play"></i><span>Reproducir Año</span>';
             }
         }
 
         function toggleStations() {
             stationsVisible = !stationsVisible;
-            updateStationsVisibility();
-            const btn = document.getElementById('btn-stations');
-            const span = btn.querySelector('span');
-            const icon = btn.querySelector('i');
-            if (stationsVisible) {
-                span.textContent = 'Ocultar Estaciones';
-                icon.classList.remove('text-gray-400');
-                icon.classList.add('text-red-500');
-                btn.classList.add('hover:border-red-500');
-                btn.classList.remove('hover:border-gray-500');
-            } else {
-                span.textContent = 'Mostrar Estaciones';
-                icon.classList.remove('text-red-500');
-                icon.classList.add('text-gray-400');
-                btn.classList.remove('hover:border-red-500');
-                btn.classList.add('hover:border-gray-500');
-            }
-        }
-
-        function updateStationsVisibility() {
-            const plotDiv = document.getElementById('map-container');
-            if (!plotDiv.data) return;
-            const update = {
-                visible: plotDiv.data.map(trace => {
-                    if (trace.type === 'densitymapbox') return true;
-                    if (trace.type === 'scattermapbox') return stationsVisible;
-                    return true;
-                })
-            };
-            Plotly.restyle('map-container', update);
+            const icon = document.getElementById('station-icon');
+            icon.className = stationsVisible ? 'fas fa-location-dot text-red-500' : 'fas fa-location-dot text-slate-500';
+            updateMap(currentMonth);
         }
 
         document.addEventListener('DOMContentLoaded', initializeMap);
