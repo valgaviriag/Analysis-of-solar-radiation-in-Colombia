@@ -225,54 +225,62 @@
             if (selector) selector.value = month;
 
             const dataKey = (month === 'Annual') ? 'Annual_Average' : month;
-            const krigingZ = window.krigingData.data[dataKey];
+            const stations = window.globalData;
+            const monthValues = stations.map(s => s[month]).filter(v => !isNaN(v));
+            const cMin = Math.min(...monthValues);
+            const cMax = Math.max(...monthValues);
 
-            // Preparar Malla Filtrada
+            // Re-procesar la malla Kriging para esta visualización
             const flatLats = [], flatLons = [], flatZ = [];
-            for (let i = 0; i < window.krigingData.lat.length; i++) {
-                for (let j = 0; j < window.krigingData.lon.length; j++) {
-                    const val = krigingZ[i][j];
-                    if (val !== null) {
-                        flatLats.push(window.krigingData.lat[i]);
-                        flatLons.push(window.krigingData.lon[j]);
-                        flatZ.push(val);
+            const krigingZ = window.krigingData.data[dataKey];
+            
+            if (krigingZ) {
+                for (let i = 0; i < window.krigingData.lat.length; i++) {
+                    for (let j = 0; j < window.krigingData.lon.length; j++) {
+                        const val = krigingZ[i][j];
+                        if (val !== null && val !== undefined) {
+                            flatLats.push(window.krigingData.lat[i]);
+                            flatLons.push(window.krigingData.lon[j]);
+                            flatZ.push(val);
+                        }
                     }
                 }
             }
 
-            const stations = window.globalData;
-            const validVals = stations.map(s => s[month]).filter(v => !isNaN(v));
-            const cMin = Math.min(...validVals), cMax = Math.max(...validVals);
-
             const krigingTrace = {
                 type: 'densitymapbox',
-                lat: flatLats, lon: flatLons, z: flatZ,
-                radius: 15, // Radio ajustado para el nuevo zoom
+                lat: flatLats,
+                lon: flatLons,
+                z: flatZ,
+                radius: 10, // Punto medio para evitar saturación y huecos
                 colorscale: 'Jet',
-                opacity: 0.8,
+                zmin: cMin,
+                zmax: cMax,
+                opacity: 0.6,
                 showscale: false,
                 hoverinfo: 'none'
             };
 
             const stationsTrace = {
                 type: 'scattermapbox',
-                lat: stations.map(s => s.lat), lon: stations.map(s => s.lon),
+                lat: stations.map(s => s.lat), 
+                lon: stations.map(s => s.lon),
                 mode: 'markers',
                 marker: {
-                    size: 6,
+                    size: 8,
                     color: stations.map(s => s[month]),
                     colorscale: 'Jet',
                     cmin: cMin, cmax: cMax,
                     showscale: true,
-                    line: { color: 'rgba(255,255,255,0.2)', width: 0.5 },
+                    line: { color: 'white', width: 1 },
                     colorbar: {
-                        thickness: 10, len: 0.5,
-                        y: 0.5, yanchor: 'middle',
-                        tickfont: { color: '#94a3b8', size: 10 },
-                        title: { text: 'kWh/m²', font: { color: '#94a3b8', size: 10 } }
+                        thickness: 15,
+                        len: 0.5,
+                        title: { text: 'kWh/m²', font: { color: '#94a3b8' } },
+                        tickfont: { color: '#94a3b8' }
                     }
                 },
-                text: stations.map(s => `<b>${s.name}</b><br>${s.dept}<br>${s[month].toFixed(2)} kWh/m²`),
+                text: stations.map(s => `<b>${s.name}</b><br>${s[month].toFixed(2)} kWh/m²`),
                 hoverinfo: 'text',
                 visible: stationsVisible
             };
