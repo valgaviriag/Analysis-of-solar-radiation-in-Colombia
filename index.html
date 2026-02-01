@@ -69,21 +69,12 @@
                     </div>
                 </div>
 
-                <!-- Region Selector -->
-                <div class="relative inline-block w-40">
-                    <select id="region-selector" onchange="updateRegion(this.value)"
-                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
-                        <option value="COL" selected>Toda Colombia</option>
-                        <option value="CARIBE">Región Caribe</option>
-                        <option value="ANDINA">Región Andina</option>
-                        <option value="PACIFICO">Región Pacífico</option>
-                        <option value="ORINOQUIA">Región Orinoquía</option>
-                        <option value="AMAZONIA">Región Amazonía</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-500">
-                        <i class="fas fa-map"></i>
-                    </div>
-                </div>
+                <!-- Play Button -->
+                <button id="btn-play" onclick="togglePlay()" 
+                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 text-sm font-medium transition duration-200">
+                    <i class="fas fa-play text-green-500 mr-2"></i>
+                    <span>Reproducir Año</span>
+                </button>
 
                 <!-- Stations Toggle -->
                 <button id="btn-stations" onclick="toggleStations()" 
@@ -142,13 +133,8 @@
                             <span>Kriging</span>
                         </div>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-gray-100">
-                        <h4 class="text-[8.45px] font-bold text-gray-700 uppercase mb-1">Método Kriging</h4>
-                        <p class="text-[7.7px] text-gray-500 leading-relaxed italic">
-                            Interpolación geoestadística que estima valores en áreas sin estaciones basándose en la autocorrelación espacial de los datos medidos.
-                        </p>
-                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -158,18 +144,10 @@
     <script>
         let currentMonth = 'ENE';
         let stationsVisible = true;
-        let currentRegion = 'COL';
+        let playInterval = null;
+        let isPlaying = false;
         
-        // Region coordinates (approximate center and zoom for Plotly geo)
-        const regions = {
-            'COL': { lat: 4.5, lon: -76.0, zoom: 4.3 }, // Centrado para incluir San Andrés y el sur
-            'CARIBE': { lat: 10.5, lon: -74.0, zoom: 6 },
-            'ANDINA': { lat: 5.5, lon: -74.5, zoom: 6 },
-            'PACIFICO': { lat: 5.0, lon: -77.0, zoom: 6 },
-            'ORINOQUIA': { lat: 5.0, lon: -70.0, zoom: 6 },
-            'AMAZONIA': { lat: 0.5, lon: -72.0, zoom: 5.5 }
-        };
-        
+        const monthsOrder = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual'];
         // Initialize map
         async function initializeMap() {
             try {
@@ -178,15 +156,21 @@
                     <div class="flex items-center justify-center h-full">
                         <div class="text-center">
                             <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
-                            <p class="text-gray-600">Cargando base de datos...</p>
+                            <p class="text-gray-600">Cargando base de datos e interpolación...</p>
                         </div>
                     </div>
                 `;
 
-                const response = await fetch('radiation_data.csv');
-                if (!response.ok) throw new Error('No se pudo cargar el archivo CSV');
-                const text = await response.text();
-                window.globalData = parseCSV(text);
+                // Cargar datos de estaciones
+                const responseCsv = await fetch('radiation_data.csv');
+                if (!responseCsv.ok) throw new Error('No se pudo cargar el archivo CSV');
+                const csvText = await responseCsv.text();
+                window.globalData = parseCSV(csvText);
+
+                // Cargar datos de Kriging pre-calculados
+                const responseKriging = await fetch('kriging_data.json');
+                if (!responseKriging.ok) throw new Error('No se pudo cargar el archivo Kriging JSON');
+                window.krigingData = await responseKriging.json();
                 
                 await updateMap('ENE');
             } catch (error) {
@@ -244,7 +228,8 @@
                     OCT: parseFloat(cleanRow[17]),
                     NOV: parseFloat(cleanRow[18]),
                     DIC: parseFloat(cleanRow[19]),
-                    Annual: parseFloat(cleanRow[24]) 
+                    Annual: parseFloat(cleanRow[24]),
+                    Annual_Average: parseFloat(cleanRow[24])
                 });
             }
             return result;
@@ -256,32 +241,55 @@
             const selector = document.getElementById('month-selector');
             if (selector && selector.value !== month) selector.value = month;
             
-            if (!window.globalData) return;
+            if (!window.globalData || !window.krigingData) return;
 
             const data = window.globalData;
             const lats = data.map(d => d.lat);
             const lons = data.map(d => d.lon);
             const vals = data.map(d => d[month]);
-            const texts = data.map(d => `${d.name} (${d.dept})<br>${d[month].toFixed(2)} kWh/m²`);
+            const texts = data.map(d => `${d.name} (${d.dept})<br>${typeof d[month] === 'number' ? d[month].toFixed(2) : 'N/A'} kWh/m²`);
 
-            // Check for valid data for this month
-            const validData = vals.some(v => !isNaN(v));
-            if (!validData) {
-                console.warn('No valid data for month:', month);
+            // Mapear nombre de mes de la interfaz al nombre en el JSON
+            const dataKey = (month === 'Annual') ? 'Annual_Average' : month;
+            const krigingZ = window.krigingData.data[dataKey];
+
+            if (!krigingZ) {
+                console.warn('No se encontraron datos de Kriging para:', dataKey);
+                return;
             }
 
-            // Create Heatmap / Density approximation
-            // Using Densitymapbox for better visual style on maps
-            const densityTrace = {
+            // Preparar datos para la interpolación visual
+            // Aplanamos la malla para usar densitymapbox, que es mucho más robusto en navegadores
+            const flatLats = [];
+            const flatLons = [];
+            const flatZ = [];
+            
+            // Usamos un paso para no saturar el mapa si la malla es muy densa
+            const step = 1; 
+            for (let i = 0; i < window.krigingData.lat.length; i += step) {
+                for (let j = 0; j < window.krigingData.lon.length; j += step) {
+                    flatLats.push(window.krigingData.lat[i]);
+                    flatLons.push(window.krigingData.lon[j]);
+                    flatZ.push(krigingZ[i][j]);
+                }
+            }
+
+            const allVals = vals.filter(v => !isNaN(v));
+            const minZ = Math.min(...allVals);
+            const maxZ = Math.max(...allVals);
+
+            // Capa de Interpolación (usando densitymapbox sobre la malla calculada)
+            const krigingTrace = {
                 type: 'densitymapbox',
-                lat: lats,
-                lon: lons,
-                z: vals,
-                radius: 40, // Adjust for smoothing
+                lat: flatLats,
+                lon: flatLons,
+                z: flatZ,
+                radius: 25, // Ajustado para cubrir el espacio entre puntos de la malla
                 colorscale: 'Jet',
                 opacity: 0.6,
-                name: 'Radiación',
-                exclude: true // Exclude from click/hover sometimes if needed, but we keep it
+                showscale: false,
+                hoverinfo: 'none',
+                name: 'Kriging'
             };
 
             // Stations points
@@ -294,13 +302,19 @@
                     size: 8,
                     color: vals,
                     colorscale: 'Jet',
-                    cmin: Math.min(...vals.filter(v => !isNaN(v))),
-                    cmax: Math.max(...vals.filter(v => !isNaN(v))),
+                    cmin: minZ,
+                    cmax: maxZ,
                     showscale: true,
                     reversescale: false,
                     line: {
                         color: 'white',
                         width: 1
+                    },
+                    colorbar: {
+                        title: 'kWh/m²',
+                        thickness: 15,
+                        titleside: 'right',
+                        outlinecolor: 'rgba(0,0,0,0)'
                     }
                 },
                 text: texts,
@@ -312,10 +326,10 @@
             const layout = {
                 mapbox: {
                     style: 'carto-positron',
-                    center: regions[currentRegion] ? {lat: regions[currentRegion].lat, lon: regions[currentRegion].lon} : {lat: 4.5, lon: -76.0},
-                    zoom: regions[currentRegion] ? regions[currentRegion].zoom : 4.3,
-                    minzoom: 4.0, // Límite para NO alejarse más de Colombia
-                    maxzoom: 18   // Permite hacer zoom profundo para ver ciudades/detalles
+                    center: {lat: 4.5, lon: -76.0},
+                    zoom: 4.3,
+                    minzoom: 4.0,
+                    maxzoom: 18
                 },
                 margin: {t:0, b:0, l:0, r:0},
                 showlegend: false
@@ -324,18 +338,39 @@
             const config = {
                 responsive: true, 
                 mapboxAccessToken: 'open-source-no-token-needed-for-carto',
-                scrollZoom: true, // Re-activar zoom para permitir exploración
-                displayModeBar: true // Mostrar herramientas para facilitar el zoom
+                scrollZoom: true,
+                displayModeBar: false
             };
 
-            Plotly.newPlot('map-container', [densityTrace, stationsTrace], layout, config).then(function() {
-                // Ensure region is respected if it was not handled by layout init (it is handled above)
-                // Nothing extra needed here for region, but maybe stats
-            });
+            Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, config);
 
             // Update stats
-            // We pass the raw values array for stats calculation
-            updateStatsFromData([{z: [vals]}]); // Wrap in structure expected by helper
+            updateStatsFromData([{z: [vals]}]); 
+        }
+
+
+        // Animación Temporal
+        function togglePlay() {
+            const btn = document.getElementById('btn-play');
+            const span = btn.querySelector('span');
+            const icon = btn.querySelector('i');
+
+            if (isPlaying) {
+                clearInterval(playInterval);
+                isPlaying = false;
+                span.textContent = 'Reproducir Año';
+                icon.className = 'fas fa-play text-green-500 mr-2';
+            } else {
+                isPlaying = true;
+                span.textContent = 'Pausar';
+                icon.className = 'fas fa-pause text-red-500 mr-2';
+                
+                playInterval = setInterval(() => {
+                    let currentIndex = monthsOrder.indexOf(currentMonth);
+                    let nextIndex = (currentIndex + 1) % (monthsOrder.length - 1); // No incluir 'Annual' en el ciclo automático
+                    updateMap(monthsOrder[nextIndex]);
+                }, 1500);
+            }
         }
         
         // Calculate and Update Statistics client-side
@@ -498,32 +533,15 @@
 
             const update = {
                 visible: plotDiv.data.map(trace => {
-                    // Density map / heat map always visible
-                    if (trace.type === 'densitymapbox') return true;
-                    // Scatter (stations) toggleable
+                    // Mantener la interpolación Kriging siempre visible
+                    if (trace.type === 'heatmapmapbox' || trace.type === 'densitymapbox') return true;
+                    // Mostrar/Ocultar estaciones
                     if (trace.type === 'scattermapbox') return stationsVisible;
                     return true;
                 })
             };
             
             Plotly.restyle('map-container', update);
-        }
-
-        // Update Map Region (Zoom)
-        function updateRegion(region, updateSelect = true) {
-            currentRegion = region;
-            if (updateSelect) document.getElementById('region-selector').value = region;
-
-            const view = regions[region];
-            if (!view) return;
-
-            const update = {
-                'mapbox.center.lat': view.lat,
-                'mapbox.center.lon': view.lon,
-                'mapbox.zoom': view.zoom 
-            };
-            
-            Plotly.relayout('map-container', update);
         }
         
         // Initialize on page load
