@@ -134,7 +134,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -148,6 +147,7 @@
         let isPlaying = false;
         
         const monthsOrder = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual'];
+
         // Initialize map
         async function initializeMap() {
             try {
@@ -264,10 +264,8 @@
             const flatLons = [];
             const flatZ = [];
             
-            // Usamos un paso para no saturar el mapa si la malla es muy densa
-            const step = 1; 
-            for (let i = 0; i < window.krigingData.lat.length; i += step) {
-                for (let j = 0; j < window.krigingData.lon.length; j += step) {
+            for (let i = 0; i < window.krigingData.lat.length; i++) {
+                for (let j = 0; j < window.krigingData.lon.length; j++) {
                     flatLats.push(window.krigingData.lat[i]);
                     flatLons.push(window.krigingData.lon[j]);
                     flatZ.push(krigingZ[i][j]);
@@ -284,7 +282,7 @@
                 lat: flatLats,
                 lon: flatLons,
                 z: flatZ,
-                radius: 25, // Ajustado para cubrir el espacio entre puntos de la malla
+                radius: 25, 
                 colorscale: 'Jet',
                 opacity: 0.6,
                 showscale: false,
@@ -348,7 +346,6 @@
             updateStatsFromData([{z: [vals]}]); 
         }
 
-
         // Animación Temporal
         function togglePlay() {
             const btn = document.getElementById('btn-play');
@@ -367,7 +364,7 @@
                 
                 playInterval = setInterval(() => {
                     let currentIndex = monthsOrder.indexOf(currentMonth);
-                    let nextIndex = (currentIndex + 1) % (monthsOrder.length - 1); // No incluir 'Annual' en el ciclo automático
+                    let nextIndex = (currentIndex + 1) % (monthsOrder.length - 1); 
                     updateMap(monthsOrder[nextIndex]);
                 }, 1500);
             }
@@ -376,12 +373,9 @@
         // Calculate and Update Statistics client-side
         function updateStatsFromData(data) {
             try {
-                // Extract all Z values from the choropleth/heatmap traces
                 let values = [];
-                
                 data.forEach(trace => {
                     if (trace.z) {
-                        // Flatten 2D arrays if necessary or just concat 1D
                         const zFlat = trace.z.flat(Infinity).filter(v => v !== null && v !== undefined && !isNaN(v));
                         values = values.concat(zFlat);
                     }
@@ -400,26 +394,18 @@
                 const mean = sum / count;
                 const range = max - min;
                 const p90 = getPercentile(values, 0.90);
-
-                // Median
                 const mid = Math.floor(count / 2);
                 const median = count % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-
-                // Std Dev for CV
                 const squareDiffs = values.map(value => Math.pow(value - mean, 2));
                 const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / count;
                 const std = Math.sqrt(avgSquareDiff);
                 const cv = (std / mean) * 100;
 
-                // Find extremes with department names
                 const maxStation = window.globalData.find(d => d[currentMonth] === max);
                 const minStation = window.globalData.find(d => d[currentMonth] === min);
-                
-                // Percentiles
                 const p25 = getPercentile(values, 0.25);
                 const p75 = getPercentile(values, 0.75);
 
-                // Solar Potential Classification
                 let potentialLabel = 'Moderado';
                 let potentialClass = 'bg-yellow-500';
                 
@@ -439,13 +425,10 @@
                 
                 document.getElementById('stats-container').innerHTML = `
                     <div class="text-[12.7px] space-y-2 flex-1">
-                        <!-- Potential Badge Small -->
                         <div class="${potentialClass} text-white rounded py-[7.92px] px-1.5 text-center font-bold mb-1.5 shadow-sm flex items-center justify-center gap-2">
                             <span class="text-[10.4px] uppercase tracking-tighter opacity-80">Potencial:</span>
                             <span>${potentialLabel}</span>
                         </div>
-
-                        <!-- Data Grid -->
                         <div class="grid grid-cols-2 gap-x-4 gap-y-[6.93px]">
                             <div class="flex justify-between border-b border-gray-100 pb-1">
                                 <span class="text-gray-500">Prom:</span><span class="font-bold">${mean.toFixed(2)}</span>
@@ -460,7 +443,6 @@
                                 <span class="text-gray-500">Máx:</span><span class="font-bold">${max.toFixed(2)}</span>
                             </div>
                         </div>
-
                         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11.55px]">
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Brecha:</span><span class="font-bold text-red-600">${range.toFixed(1)}</span>
@@ -475,7 +457,6 @@
                                 <span class="text-gray-500">P25-75:</span><span class="font-bold text-gray-700">${p25.toFixed(1)}-${p75.toFixed(1)}</span>
                             </div>
                         </div>
-
                         <div class="mt-2 pt-2 border-t border-gray-100 text-[11.55px] leading-tight">
                             <div class="flex justify-between">
                                 <span>Máx: <strong class="text-gray-800">${maxStation ? maxStation.dept : 'N/A'}</strong></span>
@@ -490,7 +471,6 @@
             }
         }
 
-        // Helper: Calculate Percentile
         function getPercentile(data, q) {
             const pos = (data.length - 1) * q;
             const base = Math.floor(pos);
@@ -502,16 +482,12 @@
             }
         }
 
-        // Toggle Stations Visibility
         function toggleStations() {
             stationsVisible = !stationsVisible;
             updateStationsVisibility();
-            
-            // Update button text/style
             const btn = document.getElementById('btn-stations');
             const span = btn.querySelector('span');
             const icon = btn.querySelector('i');
-            
             if (stationsVisible) {
                 span.textContent = 'Ocultar Estaciones';
                 icon.classList.remove('text-gray-400');
@@ -530,21 +506,16 @@
         function updateStationsVisibility() {
             const plotDiv = document.getElementById('map-container');
             if (!plotDiv.data) return;
-
             const update = {
                 visible: plotDiv.data.map(trace => {
-                    // Mantener la interpolación Kriging siempre visible
-                    if (trace.type === 'heatmapmapbox' || trace.type === 'densitymapbox') return true;
-                    // Mostrar/Ocultar estaciones
+                    if (trace.type === 'densitymapbox') return true;
                     if (trace.type === 'scattermapbox') return stationsVisible;
                     return true;
                 })
             };
-            
             Plotly.restyle('map-container', update);
         }
-        
-        // Initialize on page load
+
         document.addEventListener('DOMContentLoaded', initializeMap);
     </script>
 </body>
