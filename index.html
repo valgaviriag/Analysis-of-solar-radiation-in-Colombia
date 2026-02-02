@@ -65,7 +65,7 @@
                     <h1 class="text-3xl font-extrabold tracking-tight">
                         <span class="text-white">Solar</span><span class="text-gradient">Colombia</span>
                     </h1>
-                    <p class="text-slate-400 text-sm font-medium">Interpolación Kriging • Geoprocesamiento IDEAM</p>
+                    <p class="text-slate-400 text-sm font-medium">Análisis Espacial de Radiación • Red de estaciones IDEAM</p>
                 </div>
             </div>
             
@@ -107,34 +107,24 @@
             </div>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-160px)] min-h-[600px]">
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-260px)] min-h-[500px]">
             <!-- Map Area -->
-            <div class="lg:col-span-3 relative group">
+            <div class="lg:col-span-4 relative group">
                 <div id="map-container" class="w-full h-full bg-slate-900 border border-white/5"></div>
-                <!-- Legend Floating -->
-                <div class="absolute bottom-8 left-8 glass-card px-4 py-3 flex flex-col gap-2 shadow-2xl pointer-events-none">
-                    <span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Radiación (kWh/m²)</span>
-                    <div class="h-2 w-48 bg-gradient-to-r from-blue-600 via-yellow-400 to-red-600 rounded-full"></div>
-                    <div class="flex justify-between text-[10px] font-bold text-slate-300">
-                        <span>1.5</span>
-                        <span>4.0</span>
-                        <span>6.5+</span>
-                    </div>
-                </div>
             </div>
 
             <!-- Dashboard Sidebar -->
             <div class="flex flex-col gap-6">
                 <!-- Statistics Card -->
-                <section class="glass-card p-6 flex-1 flex flex-col overflow-hidden">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
+                <section class="glass-card pt-4 px-4 pb-4 flex-1 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
                             <i class="fas fa-chart-line text-orange-500"></i>
                             Análisis Espacial
                         </h3>
                     </div>
                     
-                    <div id="stats-container" class="space-y-6 overflow-y-auto pr-2">
+                    <div id="stats-container" class="space-y-2.5 overflow-y-auto pr-1">
                         <div class="flex justify-center py-12">
                             <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500"></div>
                         </div>
@@ -210,27 +200,39 @@
             const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
             if (lines.length < 2) return [];
 
-            const headers = lines[0].split(',').map(h => h.trim());
+            // Regex para separar por comas respetando el contenido entre comillas
+            const splitMapped = (line) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else current += char;
+                }
+                result.push(current.trim());
+                return result;
+            };
+
+            const headers = splitMapped(lines[0]);
             const result = [];
             
             for(let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(',');
+                const row = splitMapped(lines[i]);
                 if (row.length < headers.length) continue;
 
                 const entry = {};
                 headers.forEach((header, index) => {
                     let val = row[index];
-                    // Limpieza de datos (quitar comillas, convertir a número si es posible)
-                    if (val && val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-                    
                     if (['Latitud', 'Longitud', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual_Average'].includes(header)) {
-                        entry[header] = parseFloat(val);
+                        entry[header] = parseFloat(val.replace(',', '.'));
                     } else {
                         entry[header] = escapeHTML(val);
                     }
                 });
 
-                // Normalización de nombres para el resto de la app
                 result.push({
                     name: entry['Estacion'] || 'Sin Nombre',
                     dept: entry['Departamento'] || 'N/A',
@@ -325,52 +327,104 @@
                 plot_bgcolor: 'rgba(0,0,0,0)'
             };
 
-            if (monthValues.length > 0) {
+            if (flatZ.length > 0) {
+                // Rendimiento: Plotly.react actualiza solo los cambios, evitando recrear el DOM
                 Plotly.react('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
-                updateStats(monthValues, month);
+                // Análisis Espacial Real: Usamos la malla (flatZ) en lugar de solo las estaciones
+                updateStats(flatZ, month);
             } else {
                 console.warn("No hay datos para el mes:", month);
             }
         }
 
         function updateStats(values, month) {
+            if (!values || values.length === 0) return;
+
+            // 1. Estadísticas Geoespaciales sobre la superficie total
             values.sort((a, b) => a - b);
             const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            const min = values[0], max = values[values.length - 1];
-            const p90 = values[Math.floor(values.length * 0.9)];
+            const max = values[values.length - 1];
+            const min = values[0];
             
-            let potential = 'Moderado';
-            let color = 'text-yellow-400';
-            if (mean > 5.0) { potential = 'Excelente'; color = 'text-emerald-400'; }
-            else if (mean > 4.2) { potential = 'Alto'; color = 'text-orange-400'; }
+            // P90 Real: Valor que el 90% del territorio supera (Percentil 10)
+            const p90 = values[Math.floor(values.length * 0.1)];
+            
+            // Umbrales oficiales IDEAM/UPME para Colombia
+            let potential = 'Bajo';
+            let color = 'text-red-400';
+            let bg = 'bg-red-500/10';
+            
+            if (mean > 5.5) { 
+                potential = 'Excelente'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; 
+            } else if (mean > 4.5) { 
+                potential = 'Alto'; color = 'text-orange-400'; bg = 'bg-orange-500/10'; 
+            } else if (mean > 3.5) { 
+                potential = 'Moderado'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; 
+            }
 
+            // 2. Líder Regional (Departamento con el valor pico más alto)
+            let maxStationVal = -1;
+            let leaderDept = 'N/A';
+            
+            window.globalData.forEach(s => {
+                const val = s[month];
+                if (!isNaN(val) && val > maxStationVal) {
+                    maxStationVal = val;
+                    leaderDept = s.dept;
+                }
+            });
+
+            const leader = { name: leaderDept, val: maxStationVal };
+
+            // 3. Renderizado del Panel
             document.getElementById('stats-container').innerHTML = `
-                <div class="stats-badge p-4 rounded-2xl mb-4 text-center">
-                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-1">Potencial Solar</p>
-                    <p class="text-2xl font-black ${color}">${potential}</p>
+                <!-- Badge de Potencial -->
+                <div class="${bg} p-2.5 rounded-xl mb-2 border border-white/5 text-center transition-all">
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-widest">Potencial Solar</p>
+                    <p class="text-lg font-black ${color}">${potential}</p>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p class="text-[10px] text-slate-400 uppercase font-bold">Promedio</p>
-                        <p class="text-xl font-bold">${mean.toFixed(2)}</p>
+                <!-- KPIs Principales -->
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Promedio</p>
+                        <p class="text-sm font-bold text-white">${mean.toFixed(2)}</p>
                     </div>
-                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p class="text-[10px] text-slate-400 uppercase font-bold">Máximo</p>
-                        <p class="text-xl font-bold">${max.toFixed(2)}</p>
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Máximo</p>
+                        <p class="text-sm font-bold text-white">${max.toFixed(2)}</p>
                     </div>
                 </div>
 
-                <div class="space-y-3 mt-4">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400">Escala de Eficiencia (P90)</span>
+                <!-- Líder Departamental -->
+                <div class="mb-2">
+                    <h4 class="text-[9px] uppercase font-bold text-slate-500 mb-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-crown text-yellow-500 text-[8px]"></i> Líder Regional
+                    </h4>
+                    <div class="p-2 bg-gradient-to-br from-white/10 to-transparent rounded-xl border border-white/10 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[12px] font-bold text-white tracking-tight">${leader.name}</span>
+                            <span class="text-[8px] uppercase font-bold text-slate-500">Valor Pico</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-black text-orange-400">${leader.val.toFixed(2)}</span>
+                            <span class="text-[8px] block font-bold text-slate-500">kWh/m²</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eficiencia y Calidad -->
+                <div class="space-y-2 pt-1 border-t border-white/5">
+                    <div class="flex justify-between items-center text-[9px]">
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">Índice P90 (Garantía)</span>
                         <span class="font-bold text-emerald-400">${p90.toFixed(2)}</span>
                     </div>
-                    <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div class="h-full bg-emerald-500" style="width: ${(p90/7*100).toFixed(0)}%"></div>
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-emerald-600 to-emerald-400" style="width: ${(p90/7*100).toFixed(0)}%"></div>
                     </div>
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400">Variabilidad (Mín-Máx)</span>
+                    
+                    <div class="flex justify-between items-center text-[9px]">
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">Variabilidad Nac.</span>
                         <span class="font-bold text-orange-400">${(max-min).toFixed(2)}</span>
                     </div>
                 </div>
