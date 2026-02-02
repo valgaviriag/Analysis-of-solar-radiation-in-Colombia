@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar Colombia | Dashboard de Radiación</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Seguridad: SRI para librerías externas -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -30,6 +31,7 @@
         .text-gradient {
             background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .stats-badge {
@@ -196,24 +198,48 @@
             }
         }
 
+        // Seguridad: Función para escapar HTML y prevenir XSS
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[m]));
+        }
+
         function parseCSV(csv) {
-            const lines = csv.split('\n');
+            const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim());
             const result = [];
-            for(let i=1; i<lines.length; i++) {
-                const line = lines[i].trim();
-                if(!line) continue;
-                const row = line.split(','); // Simplified for internal logic
-                if (row.length < 25) continue;
+            
+            for(let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                if (row.length < headers.length) continue;
+
+                const entry = {};
+                headers.forEach((header, index) => {
+                    let val = row[index];
+                    // Limpieza de datos (quitar comillas, convertir a número si es posible)
+                    if (val && val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+                    
+                    if (['Latitud', 'Longitud', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual_Average'].includes(header)) {
+                        entry[header] = parseFloat(val);
+                    } else {
+                        entry[header] = escapeHTML(val);
+                    }
+                });
+
+                // Normalización de nombres para el resto de la app
                 result.push({
-                    name: row[1], dept: row[3],
-                    lat: parseFloat(row[4]), lon: parseFloat(row[5]),
-                    ENE: parseFloat(row[8]), FEB: parseFloat(row[9]),
-                    MAR: parseFloat(row[10]), ABR: parseFloat(row[11]),
-                    MAY: parseFloat(row[12]), JUN: parseFloat(row[13]),
-                    JUL: parseFloat(row[14]), AGO: parseFloat(row[15]),
-                    SEP: parseFloat(row[16]), OCT: parseFloat(row[17]),
-                    NOV: parseFloat(row[18]), DIC: parseFloat(row[19]),
-                    Annual: parseFloat(row[24])
+                    name: entry['Estacion'] || 'Sin Nombre',
+                    dept: entry['Departamento'] || 'N/A',
+                    lat: entry['Latitud'],
+                    lon: entry['Longitud'],
+                    ENE: entry['ENE'], FEB: entry['FEB'], MAR: entry['MAR'], ABR: entry['ABR'],
+                    MAY: entry['MAY'], JUN: entry['JUN'], JUL: entry['JUL'], AGO: entry['AGO'],
+                    SEP: entry['SEP'], OCT: entry['OCT'], NOV: entry['NOV'], DIC: entry['DIC'],
+                    Annual: entry['Annual_Average']
                 });
             }
             return result;
@@ -300,7 +326,7 @@
             };
 
             if (monthValues.length > 0) {
-                Plotly.newPlot('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
+                Plotly.react('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
                 updateStats(monthValues, month);
             } else {
                 console.warn("No hay datos para el mes:", month);
