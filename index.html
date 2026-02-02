@@ -3,54 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Interactivo de Radiación Solar en Colombia</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>Solar Colombia | Dashboard de Radiación</title>
+    <!-- Seguridad: SRI para librerías externas -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --accent: #fbbf24;
+            --accent-glow: rgba(251, 191, 36, 0.3);
+        }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: var(--bg-dark);
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
             min-height: 100vh;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .map-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
         }
         .text-gradient {
-            background: linear-gradient(to right, #FFFF00 0%, #FFA500 50%, #FF8C00 85%, #FF4D4D 100%);
+            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
+        .stats-badge {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        select, button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #map-container {
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 <base target="_blank">
 </head>
-<body>
-    <div class="container mx-auto px-4 py-4">
-    <div class="container mx-auto px-4 py-2">
-        <!-- Ultra-Compact Header -->
-        <div class="mb-4 flex items-center justify-between border-b border-white/20 pb-2">
-            <div>
-                <h1 class="text-3xl font-black text-gradient leading-none pb-1" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
-                    Radiación Solar en Colombia
-                </h1>
-                <p class="text-sm font-bold text-gradient leading-none mt-1" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));">
-                    Densidad de Radiación | Fuente: IDEAM
-                </p>
+<body class="p-4 md:p-6">
+    <div class="max-w-[1600px] mx-auto space-y-6">
+        <!-- Premium Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-6 pb-2 border-b border-white/10">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fas fa-sun text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">
+                        <span class="text-white">Solar</span><span class="text-gradient">Colombia</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm font-medium">Análisis Espacial de Radiación • Red de estaciones IDEAM</p>
+                </div>
             </div>
             
-            <div class="flex gap-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Play Button -->
+                <button id="btn-play" onclick="togglePlay()" 
+                        class="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-full font-semibold text-sm transition-all duration-300">
+                    <i class="fas fa-play"></i>
+                    <span>Reproducir Año</span>
+                </button>
+
                 <!-- Month Selector -->
-                <div class="relative inline-block w-48">
+                <div class="relative min-w-[180px]">
                     <select id="month-selector" onchange="updateMap(this.value)" 
-                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
-                        <option value="ENE" selected>Enero</option>
+                            class="w-full bg-slate-800 text-white border border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold appearance-none cursor-pointer hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                        <option value="ENE">Enero</option>
                         <option value="FEB">Febrero</option>
                         <option value="MAR">Marzo</option>
                         <option value="ABR">Abril</option>
@@ -64,469 +95,368 @@
                         <option value="DIC">Diciembre</option>
                         <option value="Annual">Promedio Anual</option>
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-500">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
                 </div>
 
-                <!-- Region Selector -->
-                <div class="relative inline-block w-40">
-                    <select id="region-selector" onchange="updateRegion(this.value)"
-                            class="block appearance-none w-full bg-white border border-gray-300 px-3 py-2 pr-8 rounded-lg shadow leading-tight text-gray-700 text-sm font-medium transition duration-200 cursor-pointer">
-                        <option value="COL" selected>Toda Colombia</option>
-                        <option value="CARIBE">Región Caribe</option>
-                        <option value="ANDINA">Región Andina</option>
-                        <option value="PACIFICO">Región Pacífico</option>
-                        <option value="ORINOQUIA">Región Orinoquía</option>
-                        <option value="AMAZONIA">Región Amazonía</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-purple-500">
-                        <i class="fas fa-map"></i>
-                    </div>
-                </div>
-
-                <!-- Stations Toggle -->
+                <!-- Toggle Stations -->
                 <button id="btn-stations" onclick="toggleStations()" 
-                        class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow hover:bg-gray-50 text-sm font-medium transition duration-200">
-                    <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
-                    <span>Ocultar Estaciones</span>
+                        class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-full font-semibold text-sm transition-all">
+                    <i id="station-icon" class="fas fa-location-dot text-red-500"></i>
+                    <span>Estaciones</span>
                 </button>
             </div>
-        </div>
+        </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-[2.1rem] items-stretch">
-            <!-- Map Container -->
-            <div class="lg:col-span-3 flex">
-                <div class="map-container p-[2.1rem] w-full flex flex-col justify-center">
-                    <div id="map-container" style="height: 510px;"></div>
-                </div>
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-260px)] min-h-[500px]">
+            <!-- Map Area -->
+            <div class="lg:col-span-4 relative group">
+                <div id="map-container" class="w-full h-full bg-slate-900 border border-white/5"></div>
             </div>
 
-            <!-- Sidebar -->
-            <div class="flex flex-col h-full gap-[2.1rem]">
+            <!-- Dashboard Sidebar -->
+            <div class="flex flex-col gap-6">
                 <!-- Statistics Card -->
-                <div class="glass-card rounded-xl p-[2.1rem] flex-[2.2] flex flex-col">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
-                        Estadísticas
-                    </h3>
-                    <div id="stats-container">
-                        <div class="text-center text-gray-500 py-4">
-                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                            <p class="text-xs">Cargando...</p>
+                <section class="glass-card pt-4 px-4 pb-4 flex-1 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <i class="fas fa-chart-line text-orange-500"></i>
+                            Análisis Espacial
+                        </h3>
+                    </div>
+                    
+                    <div id="stats-container" class="space-y-2.5 overflow-y-auto pr-1">
+                        <div class="flex justify-center py-12">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500"></div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Information Card -->
-                <div class="glass-card rounded-xl p-[1.62rem] flex-[0.77] flex flex-col">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                        Información
+                <!-- Technical Details -->
+                <section class="glass-card p-6 min-h-[140px]">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fas fa-microchip"></i>
+                        Metodología
                     </h3>
-                    <div class="text-[13.65px] text-gray-600 grid grid-cols-2 gap-x-4 gap-y-2">
-                        <div class="flex gap-1">
-                            <i class="fas fa-map-marker-alt text-red-500"></i>
-                            <span>167 Estaciones</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="stats-badge p-3 rounded-xl text-center">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold">Modelo</p>
+                            <p class="text-white text-xs font-bold mt-1">OK Spherical</p>
                         </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-calendar text-blue-500"></i>
-                            <span>Multianual</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-ruler text-purple-500"></i>
-                            <span>kWh/m²</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <i class="fas fa-cogs text-orange-500"></i>
-                            <span>Densidad</span>
+                        <div class="stats-badge p-3 rounded-xl text-center">
+                            <p class="text-slate-400 text-[10px] uppercase font-bold">Malla</p>
+                            <p class="text-white text-xs font-bold mt-1">8,000 Puntos</p>
                         </div>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-gray-100">
-                        <h4 class="text-[8.45px] font-bold text-gray-700 uppercase mb-1">Densidad de Kernel</h4>
-                        <p class="text-[7.7px] text-gray-500 leading-relaxed italic">
-                            Visualización que representa la intensidad de radiación mediante un suavizado matemático sobre los puntos de medición (KDE).
-                        </p>
-                    </div>
-                </div>
+                    <p class="text-[10px] text-slate-500 mt-4 leading-relaxed italic">
+                        Los valores fuera del límite nacional han sido removidos mediante máscara geográfica para precisión territorial.
+                    </p>
+                </section>
             </div>
-        </div>
-
-
+        </main>
     </div>
 
     <script>
         let currentMonth = 'ENE';
         let stationsVisible = true;
-        let currentRegion = 'COL';
-        
-        // Region coordinates (approximate center and zoom for Plotly geo)
-        const regions = {
-            'COL': { lat: 4.5, lon: -76.0, zoom: 4.3 }, // Centrado para incluir San Andrés y el sur
-            'CARIBE': { lat: 10.5, lon: -74.0, zoom: 6 },
-            'ANDINA': { lat: 5.5, lon: -74.5, zoom: 6 },
-            'PACIFICO': { lat: 5.0, lon: -77.0, zoom: 6 },
-            'ORINOQUIA': { lat: 5.0, lon: -70.0, zoom: 6 },
-            'AMAZONIA': { lat: 0.5, lon: -72.0, zoom: 5.5 }
-        };
-        
-        // Initialize map
+        let playInterval = null;
+        let isPlaying = false;
+        const monthsOrder = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual'];
+
         async function initializeMap() {
             try {
-                // Show loading state first
-                document.getElementById('map-container').innerHTML = `
-                    <div class="flex items-center justify-center h-full">
-                        <div class="text-center">
-                            <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
-                            <p class="text-gray-600">Cargando base de datos...</p>
-                        </div>
-                    </div>
-                `;
-
-                const response = await fetch('radiation_data.csv');
-                if (!response.ok) throw new Error('No se pudo cargar el archivo CSV');
-                const text = await response.text();
-                window.globalData = parseCSV(text);
+                // Cargar datos
+                const [csvRes, krigingRes] = await Promise.all([
+                    fetch('radiation_data.csv'),
+                    fetch('kriging_data.json')
+                ]);
+                
+                if (!csvRes.ok || !krigingRes.ok) throw new Error('Error al cargar recursos');
+                
+                const csvText = await csvRes.text();
+                window.globalData = parseCSV(csvText);
+                window.krigingData = await krigingRes.json();
                 
                 await updateMap('ENE');
             } catch (error) {
-                console.error("Error initializing:", error);
+                console.error("Init Error:", error);
                 document.getElementById('map-container').innerHTML = `
-                    <div class="flex items-center justify-center h-full text-red-500">
-                        <p><i class="fas fa-exclamation-circle mr-2"></i>Error cargando datos: ${error.message}</p>
-                    </div>
-                `;
+                    <div class="flex flex-col items-center justify-center h-full text-red-400 p-8 text-center">
+                        <i class="fas fa-triangle-exclamation text-4xl mb-4"></i>
+                        <p class="font-bold">Error de Inicialización</p>
+                        <p class="text-xs opacity-60 mt-2">${error.message}</p>
+                    </div>`;
             }
         }
-        
-        // Simple CSV Parser
+
+        // Seguridad: Función para escapar HTML y prevenir XSS
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[m]));
+        }
+
         function parseCSV(csv) {
-            const lines = csv.split('\n');
+            const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) return [];
+
+            // Regex para separar por comas respetando el contenido entre comillas
+            const splitMapped = (line) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else current += char;
+                }
+                result.push(current.trim());
+                return result;
+            };
+
+            const headers = splitMapped(lines[0]);
             const result = [];
             
-            for(let i=1; i<lines.length; i++) {
-                const line = lines[i].trim();
-                if(!line) continue;
-                
-                const cleanRow = [];
-                let inQuotes = false;
-                let current = '';
-                for (let char of line) {
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        cleanRow.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                cleanRow.push(current.trim());
-                
-                if (cleanRow.length < 25) continue;
+            for(let i = 1; i < lines.length; i++) {
+                const row = splitMapped(lines[i]);
+                if (row.length < headers.length) continue;
 
-                const cleanStr = (s) => s.replace(/^"|"$/g, '').trim();
+                const entry = {};
+                headers.forEach((header, index) => {
+                    let val = row[index];
+                    if (['Latitud', 'Longitud', 'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual_Average'].includes(header)) {
+                        entry[header] = parseFloat(val.replace(',', '.'));
+                    } else {
+                        entry[header] = escapeHTML(val);
+                    }
+                });
 
                 result.push({
-                    name: cleanStr(cleanRow[1]),
-                    dept: cleanStr(cleanRow[3]),
-                    lat: parseFloat(cleanRow[4]),
-                    lon: parseFloat(cleanRow[5]),
-                    ENE: parseFloat(cleanRow[8]),
-                    FEB: parseFloat(cleanRow[9]),
-                    MAR: parseFloat(cleanRow[10]),
-                    ABR: parseFloat(cleanRow[11]),
-                    MAY: parseFloat(cleanRow[12]),
-                    JUN: parseFloat(cleanRow[13]),
-                    JUL: parseFloat(cleanRow[14]),
-                    AGO: parseFloat(cleanRow[15]),
-                    SEP: parseFloat(cleanRow[16]),
-                    OCT: parseFloat(cleanRow[17]),
-                    NOV: parseFloat(cleanRow[18]),
-                    DIC: parseFloat(cleanRow[19]),
-                    Annual: parseFloat(cleanRow[24]) 
+                    name: entry['Estacion'] || 'Sin Nombre',
+                    dept: entry['Departamento'] || 'N/A',
+                    lat: entry['Latitud'],
+                    lon: entry['Longitud'],
+                    ENE: entry['ENE'], FEB: entry['FEB'], MAR: entry['MAR'], ABR: entry['ABR'],
+                    MAY: entry['MAY'], JUN: entry['JUN'], JUL: entry['JUL'], AGO: entry['AGO'],
+                    SEP: entry['SEP'], OCT: entry['OCT'], NOV: entry['NOV'], DIC: entry['DIC'],
+                    Annual: entry['Annual_Average']
                 });
             }
             return result;
         }
 
-        // Update map for selected month
         async function updateMap(month) {
             currentMonth = month;
             const selector = document.getElementById('month-selector');
-            if (selector && selector.value !== month) selector.value = month;
+            if (selector) selector.value = month;
+
+            const dataKey = (month === 'Annual') ? 'Annual_Average' : month;
+            const stations = window.globalData;
+            const monthValues = stations.map(s => s[month]).filter(v => !isNaN(v));
             
-            if (!window.globalData) return;
+            // Líneas de escala fijas para consistencia temporal
+            const globalMin = 1.5;
+            const globalMax = 6.5;
 
-            const data = window.globalData;
-            const lats = data.map(d => d.lat);
-            const lons = data.map(d => d.lon);
-            const vals = data.map(d => d[month]);
-            const texts = data.map(d => `${d.name} (${d.dept})<br>${d[month].toFixed(2)} kWh/m²`);
-
-            // Check for valid data for this month
-            const validData = vals.some(v => !isNaN(v));
-            if (!validData) {
-                console.warn('No valid data for month:', month);
+            // Re-procesar la malla Kriging para esta visualización
+            const flatLats = [], flatLons = [], flatZ = [];
+            const krigingZ = window.krigingData.data[dataKey];
+            
+            if (krigingZ) {
+                for (let i = 0; i < window.krigingData.lat.length; i++) {
+                    for (let j = 0; j < window.krigingData.lon.length; j++) {
+                        const val = krigingZ[i][j];
+                        if (val !== null && val !== undefined) {
+                            flatLats.push(window.krigingData.lat[i]);
+                            flatLons.push(window.krigingData.lon[j]);
+                            flatZ.push(val);
+                        }
+                    }
+                }
             }
 
-            // Create Heatmap / Density approximation
-            // Using Densitymapbox for better visual style on maps
-            const densityTrace = {
+            const krigingTrace = {
                 type: 'densitymapbox',
-                lat: lats,
-                lon: lons,
-                z: vals,
-                radius: 40, // Adjust for smoothing
+                lat: flatLats,
+                lon: flatLons,
+                z: flatZ,
+                radius: 10, // Punto medio para evitar saturación y huecos
                 colorscale: 'Jet',
+                zmin: globalMin,
+                zmax: globalMax,
                 opacity: 0.6,
-                name: 'Radiación',
-                exclude: true // Exclude from click/hover sometimes if needed, but we keep it
+                showscale: false,
+                hoverinfo: 'none'
             };
 
-            // Stations points
             const stationsTrace = {
                 type: 'scattermapbox',
-                lat: lats,
-                lon: lons,
+                lat: stations.map(s => s.lat), 
+                lon: stations.map(s => s.lon),
                 mode: 'markers',
                 marker: {
                     size: 8,
-                    color: vals,
+                    color: stations.map(s => s[month]),
                     colorscale: 'Jet',
-                    cmin: Math.min(...vals.filter(v => !isNaN(v))),
-                    cmax: Math.max(...vals.filter(v => !isNaN(v))),
+                    cmin: globalMin, cmax: globalMax,
                     showscale: true,
-                    reversescale: false,
-                    line: {
-                        color: 'white',
-                        width: 1
+                    line: { color: 'white', width: 1 },
+                    colorbar: {
+                        thickness: 15,
+                        len: 0.5,
+                        title: { text: 'kWh/m²', font: { color: '#94a3b8' } },
+                        tickfont: { color: '#94a3b8' }
                     }
                 },
-                text: texts,
+                text: stations.map(s => `<b>${s.name}</b><br>${s[month].toFixed(2)} kWh/m²`),
                 hoverinfo: 'text',
-                name: 'Estaciones',
                 visible: stationsVisible
             };
 
             const layout = {
                 mapbox: {
-                    style: 'carto-positron',
-                    center: regions[currentRegion] ? {lat: regions[currentRegion].lat, lon: regions[currentRegion].lon} : {lat: 4.5, lon: -76.0},
-                    zoom: regions[currentRegion] ? regions[currentRegion].zoom : 4.3,
-                    minzoom: 4.0, // Límite para NO alejarse más de Colombia
-                    maxzoom: 18   // Permite hacer zoom profundo para ver ciudades/detalles
+                    style: 'carto-darkmatter', // Estilo Premium Oscuro
+                    center: { lat: 4.2, lon: -74.5 }, // Centro optimizado
+                    zoom: 4.0 // Zoom con más aire
                 },
-                margin: {t:0, b:0, l:0, r:0},
-                showlegend: false
+                margin: { t: 0, b: 0, l: 0, r: 0 },
+                showlegend: false,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
             };
 
-            const config = {
-                responsive: true, 
-                mapboxAccessToken: 'open-source-no-token-needed-for-carto',
-                scrollZoom: true, // Re-activar zoom para permitir exploración
-                displayModeBar: true // Mostrar herramientas para facilitar el zoom
-            };
+            if (flatZ.length > 0) {
+                // Rendimiento: Plotly.react actualiza solo los cambios, evitando recrear el DOM
+                Plotly.react('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
+                // Análisis Espacial Real: Usamos la malla (flatZ) en lugar de solo las estaciones
+                updateStats(flatZ, month);
+            } else {
+                console.warn("No hay datos para el mes:", month);
+            }
+        }
 
-            Plotly.newPlot('map-container', [densityTrace, stationsTrace], layout, config).then(function() {
-                // Ensure region is respected if it was not handled by layout init (it is handled above)
-                // Nothing extra needed here for region, but maybe stats
+        function updateStats(values, month) {
+            if (!values || values.length === 0) return;
+
+            // 1. Estadísticas Geoespaciales sobre la superficie total
+            values.sort((a, b) => a - b);
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const max = values[values.length - 1];
+            const min = values[0];
+            
+            // P90 Real: Valor que el 90% del territorio supera (Percentil 10)
+            const p90 = values[Math.floor(values.length * 0.1)];
+            
+            // Umbrales oficiales IDEAM/UPME para Colombia
+            let potential = 'Bajo';
+            let color = 'text-red-400';
+            let bg = 'bg-red-500/10';
+            
+            if (mean > 5.5) { 
+                potential = 'Excelente'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; 
+            } else if (mean > 4.5) { 
+                potential = 'Alto'; color = 'text-orange-400'; bg = 'bg-orange-500/10'; 
+            } else if (mean > 3.5) { 
+                potential = 'Moderado'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; 
+            }
+
+            // 2. Líder Regional (Departamento con el valor pico más alto)
+            let maxStationVal = -1;
+            let leaderDept = 'N/A';
+            
+            window.globalData.forEach(s => {
+                const val = s[month];
+                if (!isNaN(val) && val > maxStationVal) {
+                    maxStationVal = val;
+                    leaderDept = s.dept;
+                }
             });
 
-            // Update stats
-            // We pass the raw values array for stats calculation
-            updateStatsFromData([{z: [vals]}]); // Wrap in structure expected by helper
-        }
-        
-        // Calculate and Update Statistics client-side
-        function updateStatsFromData(data) {
-            try {
-                // Extract all Z values from the choropleth/heatmap traces
-                let values = [];
+            const leader = { name: leaderDept, val: maxStationVal };
+
+            // 3. Renderizado del Panel
+            document.getElementById('stats-container').innerHTML = `
+                <!-- Badge de Potencial -->
+                <div class="${bg} p-2.5 rounded-xl mb-2 border border-white/5 text-center transition-all">
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-widest">Potencial Solar</p>
+                    <p class="text-lg font-black ${color}">${potential}</p>
+                </div>
                 
-                data.forEach(trace => {
-                    if (trace.z) {
-                        // Flatten 2D arrays if necessary or just concat 1D
-                        const zFlat = trace.z.flat(Infinity).filter(v => v !== null && v !== undefined && !isNaN(v));
-                        values = values.concat(zFlat);
-                    }
-                });
+                <!-- KPIs Principales -->
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Promedio</p>
+                        <p class="text-sm font-bold text-white">${mean.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Máximo</p>
+                        <p class="text-sm font-bold text-white">${max.toFixed(2)}</p>
+                    </div>
+                </div>
 
-                if (values.length === 0) {
-                    document.getElementById('stats-container').innerHTML = '<p class="text-gray-500">No hay datos suficientes</p>';
-                    return;
-                }
-
-                values.sort((a, b) => a - b);
-                const count = values.length;
-                const min = values[0];
-                const max = values[count - 1];
-                const sum = values.reduce((a, b) => a + b, 0);
-                const mean = sum / count;
-                const range = max - min;
-                const p90 = getPercentile(values, 0.90);
-
-                // Median
-                const mid = Math.floor(count / 2);
-                const median = count % 2 !== 0 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-
-                // Std Dev for CV
-                const squareDiffs = values.map(value => Math.pow(value - mean, 2));
-                const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / count;
-                const std = Math.sqrt(avgSquareDiff);
-                const cv = (std / mean) * 100;
-
-                // Find extremes with department names
-                const maxStation = window.globalData.find(d => d[currentMonth] === max);
-                const minStation = window.globalData.find(d => d[currentMonth] === min);
-                
-                // Percentiles
-                const p25 = getPercentile(values, 0.25);
-                const p75 = getPercentile(values, 0.75);
-
-                // Solar Potential Classification
-                let potentialLabel = 'Moderado';
-                let potentialClass = 'bg-yellow-500';
-                
-                if (mean < 3.5) {
-                    potentialLabel = 'Bajo';
-                    potentialClass = 'bg-red-500';
-                } else if (mean >= 3.5 && mean < 4.5) {
-                    potentialLabel = 'Moderado';
-                    potentialClass = 'bg-yellow-500';
-                } else if (mean >= 4.5 && mean < 5.5) {
-                    potentialLabel = 'Alto';
-                    potentialClass = 'bg-green-500';
-                } else {
-                    potentialLabel = 'Muy Alto';
-                    potentialClass = 'bg-blue-600';
-                }
-                
-                document.getElementById('stats-container').innerHTML = `
-                    <div class="text-[12.7px] space-y-2 flex-1">
-                        <!-- Potential Badge Small -->
-                        <div class="${potentialClass} text-white rounded py-[7.92px] px-1.5 text-center font-bold mb-1.5 shadow-sm flex items-center justify-center gap-2">
-                            <span class="text-[10.4px] uppercase tracking-tighter opacity-80">Potencial:</span>
-                            <span>${potentialLabel}</span>
+                <!-- Líder Departamental -->
+                <div class="mb-2">
+                    <h4 class="text-[9px] uppercase font-bold text-slate-500 mb-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-crown text-yellow-500 text-[8px]"></i> Líder Regional
+                    </h4>
+                    <div class="p-2 bg-gradient-to-br from-white/10 to-transparent rounded-xl border border-white/10 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[12px] font-bold text-white tracking-tight">${leader.name}</span>
+                            <span class="text-[8px] uppercase font-bold text-slate-500">Valor Pico</span>
                         </div>
-
-                        <!-- Data Grid -->
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-[6.93px]">
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Prom:</span><span class="font-bold">${mean.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Med:</span><span class="font-bold">${median.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Mín:</span><span class="font-bold">${min.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between border-b border-gray-100 pb-1">
-                                <span class="text-gray-500">Máx:</span><span class="font-bold">${max.toFixed(2)}</span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11.55px]">
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Brecha:</span><span class="font-bold text-red-600">${range.toFixed(1)}</span>
-                            </div>
-                             <div class="flex justify-between">
-                                <span class="text-gray-500">Estab(CV):</span><span class="font-bold text-orange-600">${cv.toFixed(0)}%</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">Eficiencia(P90):</span><span class="font-bold text-green-600">${p90.toFixed(1)}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-500">P25-75:</span><span class="font-bold text-gray-700">${p25.toFixed(1)}-${p75.toFixed(1)}</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-2 pt-2 border-t border-gray-100 text-[11.55px] leading-tight">
-                            <div class="flex justify-between">
-                                <span>Máx: <strong class="text-gray-800">${maxStation ? maxStation.dept : 'N/A'}</strong></span>
-                                <span>Mín: <strong class="text-gray-800">${minStation ? minStation.dept : 'N/A'}</strong></span>
-                            </div>
+                        <div class="text-right">
+                            <span class="text-base font-black text-orange-400">${leader.val.toFixed(2)}</span>
+                            <span class="text-[8px] block font-bold text-slate-500">kWh/m²</span>
                         </div>
                     </div>
-                `;
-            } catch (error) {
-                console.error('Error calculating stats:', error);
-                document.getElementById('stats-container').innerHTML = `<p class="text-red-500">Error calculando estadísticas</p>`;
-            }
+                </div>
+
+                <!-- Eficiencia y Calidad -->
+                <div class="space-y-2 pt-1 border-t border-white/5">
+                    <div class="flex justify-between items-center text-[9px]">
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">Índice P90 (Garantía)</span>
+                        <span class="font-bold text-emerald-400">${p90.toFixed(2)}</span>
+                    </div>
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-emerald-600 to-emerald-400" style="width: ${(p90/7*100).toFixed(0)}%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-[9px]">
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">Variabilidad Nac.</span>
+                        <span class="font-bold text-orange-400">${(max-min).toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
         }
 
-        // Helper: Calculate Percentile
-        function getPercentile(data, q) {
-            const pos = (data.length - 1) * q;
-            const base = Math.floor(pos);
-            const rest = pos - base;
-            if ((data[base + 1] !== undefined)) {
-                return data[base] + rest * (data[base + 1] - data[base]);
+        function togglePlay() {
+            const btn = document.getElementById('btn-play');
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                btn.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+                btn.classList.remove('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+                btn.innerHTML = '<i class="fas fa-pause"></i><span>Pausar</span>';
+                playInterval = setInterval(() => {
+                    let next = (monthsOrder.indexOf(currentMonth) + 1) % 12;
+                    updateMap(monthsOrder[next]);
+                }, 1500);
             } else {
-                return data[base];
+                clearInterval(playInterval);
+                btn.classList.remove('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+                btn.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+                btn.innerHTML = '<i class="fas fa-play"></i><span>Reproducir Año</span>';
             }
         }
 
-        // Toggle Stations Visibility
         function toggleStations() {
             stationsVisible = !stationsVisible;
-            updateStationsVisibility();
-            
-            // Update button text/style
-            const btn = document.getElementById('btn-stations');
-            const span = btn.querySelector('span');
-            const icon = btn.querySelector('i');
-            
-            if (stationsVisible) {
-                span.textContent = 'Ocultar Estaciones';
-                icon.classList.remove('text-gray-400');
-                icon.classList.add('text-red-500');
-                btn.classList.add('hover:border-red-500');
-                btn.classList.remove('hover:border-gray-500');
-            } else {
-                span.textContent = 'Mostrar Estaciones';
-                icon.classList.remove('text-red-500');
-                icon.classList.add('text-gray-400');
-                btn.classList.remove('hover:border-red-500');
-                btn.classList.add('hover:border-gray-500');
-            }
+            const icon = document.getElementById('station-icon');
+            icon.className = stationsVisible ? 'fas fa-location-dot text-red-500' : 'fas fa-location-dot text-slate-500';
+            updateMap(currentMonth);
         }
 
-        function updateStationsVisibility() {
-            const plotDiv = document.getElementById('map-container');
-            if (!plotDiv.data) return;
-
-            const update = {
-                visible: plotDiv.data.map(trace => {
-                    // Density map / heat map always visible
-                    if (trace.type === 'densitymapbox') return true;
-                    // Scatter (stations) toggleable
-                    if (trace.type === 'scattermapbox') return stationsVisible;
-                    return true;
-                })
-            };
-            
-            Plotly.restyle('map-container', update);
-        }
-
-        // Update Map Region (Zoom)
-        function updateRegion(region, updateSelect = true) {
-            currentRegion = region;
-            if (updateSelect) document.getElementById('region-selector').value = region;
-
-            const view = regions[region];
-            if (!view) return;
-
-            const update = {
-                'mapbox.center.lat': view.lat,
-                'mapbox.center.lon': view.lon,
-                'mapbox.zoom': view.zoom 
-            };
-            
-            Plotly.relayout('map-container', update);
-        }
-        
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', initializeMap);
     </script>
 </body>
