@@ -227,8 +227,10 @@
             const dataKey = (month === 'Annual') ? 'Annual_Average' : month;
             const stations = window.globalData;
             const monthValues = stations.map(s => s[month]).filter(v => !isNaN(v));
-            const cMin = Math.min(...monthValues);
-            const cMax = Math.max(...monthValues);
+            
+            // Líneas de escala fijas para consistencia temporal
+            const globalMin = 1.5;
+            const globalMax = 6.5;
 
             // Re-procesar la malla Kriging para esta visualización
             const flatLats = [], flatLons = [], flatZ = [];
@@ -254,8 +256,8 @@
                 z: flatZ,
                 radius: 10, // Punto medio para evitar saturación y huecos
                 colorscale: 'Jet',
-                zmin: cMin,
-                zmax: cMax,
+                zmin: globalMin,
+                zmax: globalMax,
                 opacity: 0.6,
                 showscale: false,
                 hoverinfo: 'none'
@@ -270,7 +272,7 @@
                     size: 8,
                     color: stations.map(s => s[month]),
                     colorscale: 'Jet',
-                    cmin: cMin, cmax: cMax,
+                    cmin: globalMin, cmax: globalMax,
                     showscale: true,
                     line: { color: 'white', width: 1 },
                     colorbar: {
