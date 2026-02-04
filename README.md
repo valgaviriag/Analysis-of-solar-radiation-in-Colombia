@@ -1,53 +1,55 @@
-# ☀️ Solar Colombia | Dashboard de Radiación
+# ☀️ Solar Colombia | Radiation Dashboard
 
 ![Preview](preview.png)
 
-## 📌 Descripción
-**Solar Colombia** es una plataforma interactiva de análisis geoespacial diseñada para visualizar y analizar el potencial de radiación solar en el territorio colombiano. Utilizando datos históricos de la red de estaciones del **IDEAM**, el proyecto aplica algoritmos de interpolación avanzada (**Kriging**) para generar superficies de radiación continua, permitiendo identificar las zonas con mayor aptitud para proyectos de energía fotovoltaica.
+## 📌 Description
+**Solar Colombia** is an interactive geospatial analysis platform designed to visualize and analyze solar radiation potential across the Colombian territory. Using historical data from the **IDEAM** station network, the project applies advanced interpolation algorithms (**Kriging**) to generate continuous radiation surfaces, allowing for the identification of areas with the highest suitability for photovoltaic energy projects.
 
-## 🚀 Características Principales
-- **Mapa de Calor Interactivo**: Visualización dinámica de la radiación solar (kWh/m²) en todo el país.
-- **Interpolación Kriging**: Modelo matemático (Ordinary Kriging - Spherical) aplicado sobre más de 8,000 puntos para una precisión territorial superior.
-- **Modo Animación**: Reproducción automática de la variabilidad solar a lo largo de los meses del año.
-- **Panel de KPIs Geográficos**:
-  - **Potencial Solar**: Clasificación automática (Excelente, Alto, Moderado, Bajo).
-  - **Índice P90**: Garantía de radiación superada por el 90% del territorio.
-  - **Líder Regional**: Identificación dinámica del departamento con mayores niveles de radiación.
-- **Diseño Premium**: Interfaz moderna en modo oscuro con efectos de desenfoque (Glassmorphism) y diseño responsivo.
+## 🚀 Main Features
+- **Interactive Heatmap**: Dynamic visualization of solar radiation (kWh/m²) across the country.
+- **Kriging Interpolation**: Mathematical model (Ordinary Kriging - Spherical) applied over 8,000 points for superior territorial precision.
+- **Multi-language Support**: Interface available in **English**, **Spanish**, and **German**.
+- **Animation Mode**: Automatic playback of solar variability throughout the months of the year.
+- **Geographic KPI Panel**:
+  - **Solar Potential**: Automatic classification (Excellent, High, Moderate, Low).
+  - **P90 Index**: Radiation guarantee exceeded by 90% of the territory.
+  - **Regional Leader**: Dynamic identification of the department with the highest radiation levels.
+- **Premium Design**: Modern dark mode interface with glassmorphism effects and responsive layout.
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Tech Stack
 ### Frontend
 - **HTML5 / JavaScript (ES6+)**
-- **Tailwind CSS**: Estilizado moderno y utilitario.
-- **Plotly.js**: Motor de renderizado para el mapa base (Mapbox) y visualización de datos espaciales.
-- **FontAwesome**: Iconografía técnica.
+- **Tailwind CSS**: Modern utility-first styling.
+- **Plotly.js**: Rendering engine for the base map (Mapbox) and spatial data visualization.
+- **FontAwesome**: Technical iconography.
+- **Internationalization (i18n)**: Native implementation for dynamic language switching.
 
-### Análisis de Datos (Backend / Scripts)
-- **Python**: Procesamiento de datos y modelado geoespacial.
-- **PyKrige**: Implementación del modelo Ordinary Kriging.
-- **GeoPandas & Shapely**: Procesamiento de geometrías y máscaras geográficas nacionales.
-- **Pandas & NumPy**: Manipulación eficiente de grandes volúmenes de datos meteorológicos.
+### Geostatistical Analysis & Backend
+- **Python**: Data processing and geospatial modeling.
+- **PyKrige**: Implementation of the Ordinary Kriging model.
+- **GeoPandas & Shapely**: Processing of geometries and national geographic masks.
+- **Pandas & NumPy**: Efficient manipulation of large volumes of meteorological data.
 
-## 📂 Estructura del Proyecto
-- `index.html`: Dashboard principal y lógica de visualización frontend.
-- `kriging_interpolation.py`: Script de Python para procesar datos CSV y generar la malla interpolada.
-- `radiation_data.csv`: Datos de estaciones (Radiación mensual y promedio anual).
-- `colombia.json`: GeoJSON del límite nacional para el recorte de la interpolación.
-- `kriging_data.json`: Resultado procesado de la interpolación para el consumo del dashboard.
-- `convert_units.py`: Utilidad para la normalización de unidades (Wh/m² a kWh/m²).
+## 📂 Project Structure
+- `index.html`: Main dashboard with multi-language support and visualization logic.
+- `kriging_interpolation.py`: Python script to process CSV data and generate the interpolated grid.
+- `radiation_data.csv`: Station data (Monthly radiation and annual average).
+- `colombia.json`: National boundary GeoJSON for clipping the interpolation.
+- `kriging_data.json`: Processed interpolation results for dashboard consumption.
+- `convert_units.py`: Utility for unit normalization (Wh/m² to kWh/m²).
 
-## 📊 Metodología
-La superficie de radiación se genera mediante **Kriging Ordinario**, un método geoestadístico que estima valores en puntos no muestreados basándose en la correlación espacial de los datos conocidos (estaciones).
-1. **Limpieza**: Se procesan los datos del IDEAM eliminando valores nulos y normalizando coordenadas.
-2. **Interpolación**: Se ejecuta el modelo esférico para cada mes del año.
-3. **Máscara**: Los resultados se filtran utilizando el polígono oficial de Colombia para evitar distorsiones en zonas fronterizas y oceánicas.
+## 📊 Methodology
+The radiation surface is generated using **Ordinary Kriging**, a geostatistical method that estimates values at unsampled points based on the spatial correlation of known data (stations).
+1. **Cleaning**: IDEAM data is processed by removing null values and normalizing coordinates.
+2. **Interpolation**: The spherical model is executed for each month of the year.
+3. **Masking**: Results are filtered using Colombia's official polygon to avoid distortions in border and oceanic areas.
 
-## ⚙️ Instalación y Uso Local
-1. Clona el repositorio.
-2. Abre `index.html` en un navegador (se recomienda usar un servidor local como *Live Server* de VS Code para cargar los archivos JSON correctamente).
-3. Si deseas actualizar los datos:
-   - Instala las dependencias de Python: `pip install pandas numpy pykrige geopandas shapely`
-   - Ejecuta `python kriging_interpolation.py` para regenerar la malla de datos.
+## ⚙️ Installation and Local Usage
+1. Clone the repository.
+2. Open `index.html` in a browser (using a local server like VS Code's *Live Server* is recommended to load JSON files correctly).
+3. To update the data:
+   - Install Python dependencies: `pip install pandas numpy pykrige geopandas shapely`
+   - Run `python kriging_interpolation.py` to regenerate the data grid.
 
 ---
-*Desarrollado para el análisis de energías renovables en Colombia.*
+*Developed for renewable energy analysis in Colombia.*

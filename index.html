@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="title">Solar Colombia | Dashboard de Radiación</title>
-    <!-- Seguridad: SRI para librerías externas -->
+    <!-- Security: SRI for external libraries -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -65,7 +65,7 @@
                     <h1 class="text-3xl font-extrabold tracking-tight">
                         <span class="text-white" data-i18n="headerTitle1">Solar</span><span class="text-gradient" data-i18n="headerTitle2">Colombia</span>
                     </h1>
-                    <p class="text-slate-400 text-sm font-medium" data-i18n="headerSubtitle">Análisis Espacial de Radiación • Red de estaciones IDEAM</p>
+                    <p class="text-slate-400 text-sm font-medium" data-i18n="headerSubtitle">Spatial Radiation Analysis • IDEAM station network</p>
                 </div>
             </div>
             
@@ -74,26 +74,26 @@
                 <button id="btn-play" onclick="togglePlay()" 
                         class="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-full font-semibold text-sm transition-all duration-300">
                     <i class="fas fa-play"></i>
-                    <span data-i18n="btnPlay">Reproducir Año</span>
+                    <span data-i18n="btnPlay">Play Year</span>
                 </button>
 
                 <!-- Month Selector -->
                 <div class="relative min-w-[180px]">
                     <select id="month-selector" onchange="updateMap(this.value)" 
                             class="w-full bg-slate-800 text-white border border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold appearance-none cursor-pointer hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
-                        <option value="ENE">Enero</option>
-                        <option value="FEB">Febrero</option>
-                        <option value="MAR">Marzo</option>
-                        <option value="ABR">Abril</option>
-                        <option value="MAY">Mayo</option>
-                        <option value="JUN">Junio</option>
-                        <option value="JUL">Julio</option>
-                        <option value="AGO">Agosto</option>
-                        <option value="SEP">Septiembre</option>
-                        <option value="OCT">Octubre</option>
-                        <option value="NOV">Noviembre</option>
-                        <option value="DIC">Diciembre</option>
-                        <option value="Annual">Promedio Anual</option>
+                        <option value="ENE">January</option>
+                        <option value="FEB">February</option>
+                        <option value="MAR">March</option>
+                        <option value="ABR">April</option>
+                        <option value="MAY">May</option>
+                        <option value="JUN">June</option>
+                        <option value="JUL">July</option>
+                        <option value="AGO">August</option>
+                        <option value="SEP">September</option>
+                        <option value="OCT">October</option>
+                        <option value="NOV">November</option>
+                        <option value="DIC">December</option>
+                        <option value="Annual">Annual Average</option>
                     </select>
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
                 </div>
@@ -102,7 +102,7 @@
                 <button id="btn-stations" onclick="toggleStations()" 
                         class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-full font-semibold text-sm transition-all">
                     <i id="station-icon" class="fas fa-location-dot text-red-500"></i>
-                    <span data-i18n="btnStations">Estaciones</span>
+                    <span data-i18n="btnStations">Stations</span>
                 </button>
 
                 <!-- Language Selector -->
@@ -131,7 +131,7 @@
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-bold flex items-center gap-2">
                             <i class="fas fa-chart-line text-orange-500"></i>
-                            <span data-i18n="spatialAnalysis">Análisis Espacial</span>
+                            <span data-i18n="spatialAnalysis">Spatial Analysis</span>
                         </h3>
                     </div>
                     
@@ -146,20 +146,20 @@
                 <section class="glass-card p-6 min-h-[140px]">
                     <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <i class="fas fa-microchip"></i>
-                        <span data-i18n="methodology">Metodología</span>
+                        <span data-i18n="methodology">Methodology</span>
                     </h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="stats-badge p-3 rounded-xl text-center">
-                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="model">Modelo</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="model">Model</p>
                             <p class="text-white text-xs font-bold mt-1">OK Spherical</p>
                         </div>
                         <div class="stats-badge p-3 rounded-xl text-center">
-                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="grid">Malla</p>
-                            <p class="text-white text-xs font-bold mt-1" data-i18n="gridPoints">8,000 Puntos</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="grid">Grid</p>
+                            <p class="text-white text-xs font-bold mt-1" data-i18n="gridPoints">8,000 Points</p>
                         </div>
                     </div>
                     <p class="text-[10px] text-slate-500 mt-4 leading-relaxed italic" data-i18n="footnote">
-                        Los valores fuera del límite nacional han sido removidos mediante máscara geográfica para precisión territorial.
+                        Values outside the national boundary have been removed using a geographical mask for territorial precision.
                     </p>
                 </section>
             </div>
@@ -314,7 +314,7 @@
 
         async function initializeMap() {
             try {
-                // Cargar datos
+                // Load data
                 const [csvRes, krigingRes] = await Promise.all([
                     fetch('radiation_data.csv'),
                     fetch('kriging_data.json')
@@ -338,7 +338,7 @@
             }
         }
 
-        // Seguridad: Función para escapar HTML y prevenir XSS
+        // Security: Function to escape HTML and prevent XSS
         function escapeHTML(str) {
             if (typeof str !== 'string') return str;
             return str.replace(/[&<>"']/g, m => ({
@@ -350,7 +350,7 @@
             const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
             if (lines.length < 2) return [];
 
-            // Regex para separar por comas respetando el contenido entre comillas
+            // Regex to split by commas respecting content between quotes
             const splitMapped = (line) => {
                 const result = [];
                 let current = '';
@@ -384,7 +384,7 @@
                 });
 
                 result.push({
-                    name: entry['Estacion'] || 'Sin Nombre',
+                    name: entry['Estacion'] || 'Unnamed',
                     dept: entry['Departamento'] || 'N/A',
                     lat: entry['Latitud'],
                     lon: entry['Longitud'],
@@ -406,11 +406,11 @@
             const stations = window.globalData;
             const monthValues = stations.map(s => s[month]).filter(v => !isNaN(v));
             
-            // Líneas de escala fijas para consistencia temporal
+            // Fixed scale lines for temporal consistency
             const globalMin = 1.5;
             const globalMax = 6.5;
 
-            // Re-procesar la malla Kriging para esta visualización
+            // Re-process the Kriging grid for this visualization
             const flatLats = [], flatLons = [], flatZ = [];
             const krigingZ = window.krigingData.data[dataKey];
             
@@ -432,7 +432,7 @@
                 lat: flatLats,
                 lon: flatLons,
                 z: flatZ,
-                radius: 10, // Punto medio para evitar saturación y huecos
+                radius: 10, // Midpoint to avoid saturation and gaps
                 colorscale: 'Jet',
                 zmin: globalMin,
                 zmax: globalMax,
@@ -467,9 +467,9 @@
 
             const layout = {
                 mapbox: {
-                    style: 'carto-darkmatter', // Estilo Premium Oscuro
-                    center: { lat: 4.2, lon: -74.5 }, // Centro optimizado
-                    zoom: 4.0 // Zoom con más aire
+                    style: 'carto-darkmatter', // Dark Premium Style
+                    center: { lat: 4.5, lon: -73.5 }, // Centered perspective
+                    zoom: 4.0 // Holistic view
                 },
                 margin: { t: 0, b: 0, l: 0, r: 0 },
                 showlegend: false,
@@ -478,28 +478,28 @@
             };
 
             if (flatZ.length > 0) {
-                // Rendimiento: Plotly.react actualiza solo los cambios, evitando recrear el DOM
+                // Performance: Plotly.react updates only changes, avoiding DOM recreation
                 Plotly.react('map-container', [krigingTrace, stationsTrace], layout, { responsive: true, displayModeBar: false });
-                // Análisis Espacial Real: Usamos la malla (flatZ) en lugar de solo las estaciones
+                // Real Spatial Analysis: We use the grid (flatZ) instead of just stations
                 updateStats(flatZ, month);
             } else {
-                console.warn("No hay datos para el mes:", month);
+                console.warn("No data for month:", month);
             }
         }
 
         function updateStats(values, month) {
             if (!values || values.length === 0) return;
 
-            // 1. Estadísticas Geoespaciales sobre la superficie total
+            // 1. Geospatial Statistics over the total surface
             values.sort((a, b) => a - b);
             const mean = values.reduce((a, b) => a + b, 0) / values.length;
             const max = values[values.length - 1];
             const min = values[0];
             
-            // P90 Real: Valor que el 90% del territorio supera (Percentil 10)
+            // Real P90: Value that 90% of the territory exceeds (10th Percentile)
             const p90 = values[Math.floor(values.length * 0.1)];
             
-            // Umbrales oficiales IDEAM/UPME para Colombia
+            // Official IDEAM/UPME thresholds for Colombia
             if (mean > 5.5) { 
                 potentialKey = 'Excelente'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; 
             } else if (mean > 4.5) { 
@@ -512,7 +512,7 @@
             
             const potentialTranslated = translations[currentLang].potentials[potentialKey];
 
-            // 2. Líder Regional (Departamento con el valor pico más alto)
+            // 2. Regional Leader (Department with the highest peak value)
             let maxStationVal = -1;
             let leaderDept = 'N/A';
             
@@ -527,15 +527,15 @@
             const leader = { name: leaderDept, val: maxStationVal };
             const t = translations[currentLang].stats;
 
-            // 3. Renderizado del Panel
+            // 3. Panel Rendering
             document.getElementById('stats-container').innerHTML = `
-                <!-- Badge de Potencial -->
+                <!-- Potential Badge -->
                 <div class="${bg} p-2.5 rounded-xl mb-2 border border-white/5 text-center transition-all">
                     <p class="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-widest">${translations[currentLang].solarPotential}</p>
                     <p class="text-lg font-black ${color}">${potentialTranslated}</p>
                 </div>
                 
-                <!-- KPIs Principales -->
+                <!-- Main KPIs -->
                 <div class="grid grid-cols-2 gap-2 mb-2">
                     <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
                         <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">${t.average}</p>
@@ -547,7 +547,7 @@
                     </div>
                 </div>
 
-                <!-- Líder Departamental -->
+                <!-- Departmental Leader -->
                 <div class="mb-2">
                     <h4 class="text-[9px] uppercase font-bold text-slate-500 mb-2 tracking-widest flex items-center gap-2">
                         <i class="fas fa-crown text-yellow-500 text-[8px]"></i> ${t.regionalLeader}
@@ -564,7 +564,7 @@
                     </div>
                 </div>
 
-                <!-- Eficiencia y Calidad -->
+                <!-- Efficiency and Quality -->
                 <div class="space-y-2 pt-1 border-t border-white/5">
                     <div class="flex justify-between items-center text-[9px]">
                         <span class="text-slate-400 uppercase font-bold text-[9px]">${t.p90Index}</span>
