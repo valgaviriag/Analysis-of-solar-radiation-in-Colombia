@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar Colombia | Dashboard de Radiación</title>
+    <title data-i18n="title">Solar Colombia | Dashboard de Radiación</title>
     <!-- Seguridad: SRI para librerías externas -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,9 +63,9 @@
                 </div>
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight">
-                        <span class="text-white">Solar</span><span class="text-gradient">Colombia</span>
+                        <span class="text-white" data-i18n="headerTitle1">Solar</span><span class="text-gradient" data-i18n="headerTitle2">Colombia</span>
                     </h1>
-                    <p class="text-slate-400 text-sm font-medium">Análisis Espacial de Radiación • Red de estaciones IDEAM</p>
+                    <p class="text-slate-400 text-sm font-medium" data-i18n="headerSubtitle">Análisis Espacial de Radiación • Red de estaciones IDEAM</p>
                 </div>
             </div>
             
@@ -74,7 +74,7 @@
                 <button id="btn-play" onclick="togglePlay()" 
                         class="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-full font-semibold text-sm transition-all duration-300">
                     <i class="fas fa-play"></i>
-                    <span>Reproducir Año</span>
+                    <span data-i18n="btnPlay">Reproducir Año</span>
                 </button>
 
                 <!-- Month Selector -->
@@ -102,8 +102,19 @@
                 <button id="btn-stations" onclick="toggleStations()" 
                         class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-full font-semibold text-sm transition-all">
                     <i id="station-icon" class="fas fa-location-dot text-red-500"></i>
-                    <span>Estaciones</span>
+                    <span data-i18n="btnStations">Estaciones</span>
                 </button>
+
+                <!-- Language Selector -->
+                <div class="relative min-w-[120px]">
+                    <select id="lang-selector" onchange="setLanguage(this.value)" 
+                            class="w-full bg-slate-800 text-white border border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold appearance-none cursor-pointer hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="de">Deutsch</option>
+                    </select>
+                    <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
+                </div>
             </div>
         </header>
 
@@ -120,7 +131,7 @@
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-bold flex items-center gap-2">
                             <i class="fas fa-chart-line text-orange-500"></i>
-                            Análisis Espacial
+                            <span data-i18n="spatialAnalysis">Análisis Espacial</span>
                         </h3>
                     </div>
                     
@@ -135,19 +146,19 @@
                 <section class="glass-card p-6 min-h-[140px]">
                     <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <i class="fas fa-microchip"></i>
-                        Metodología
+                        <span data-i18n="methodology">Metodología</span>
                     </h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="stats-badge p-3 rounded-xl text-center">
-                            <p class="text-slate-400 text-[10px] uppercase font-bold">Modelo</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="model">Modelo</p>
                             <p class="text-white text-xs font-bold mt-1">OK Spherical</p>
                         </div>
                         <div class="stats-badge p-3 rounded-xl text-center">
-                            <p class="text-slate-400 text-[10px] uppercase font-bold">Malla</p>
-                            <p class="text-white text-xs font-bold mt-1">8,000 Puntos</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-bold" data-i18n="grid">Malla</p>
+                            <p class="text-white text-xs font-bold mt-1" data-i18n="gridPoints">8,000 Puntos</p>
                         </div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-4 leading-relaxed italic">
+                    <p class="text-[10px] text-slate-500 mt-4 leading-relaxed italic" data-i18n="footnote">
                         Los valores fuera del límite nacional han sido removidos mediante máscara geográfica para precisión territorial.
                     </p>
                 </section>
@@ -160,7 +171,146 @@
         let stationsVisible = true;
         let playInterval = null;
         let isPlaying = false;
+        let currentLang = 'en';
         const monthsOrder = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC', 'Annual'];
+
+        const translations = {
+            en: {
+                title: "Solar Colombia | Radiation Dashboard",
+                headerTitle1: "Solar",
+                headerTitle2: "Colombia",
+                headerSubtitle: "Spatial Radiation Analysis • IDEAM Station Network",
+                btnPlay: "Play Year",
+                btnPause: "Pause",
+                monthSelector: {
+                    ENE: "January", FEB: "February", MAR: "March", ABR: "April",
+                    MAY: "May", JUN: "June", JUL: "July", AGO: "August",
+                    SEP: "September", OCT: "October", NOV: "November", DIC: "December",
+                    Annual: "Annual Average"
+                },
+                btnStations: "Stations",
+                spatialAnalysis: "Spatial Analysis",
+                methodology: "Methodology",
+                model: "Model",
+                grid: "Grid",
+                gridPoints: "8,000 Points",
+                footnote: "Values outside national boundaries have been removed using a geographical mask for territorial precision.",
+                initError: "Initialization Error",
+                loadError: "Error loading resources",
+                solarPotential: "Solar Potential",
+                potentials: {
+                    Bajo: "Low", Moderado: "Moderate", Alto: "High", Excelente: "Excellent"
+                },
+                stats: {
+                    average: "Average", maximum: "Maximum", regionalLeader: "Regional Leader",
+                    peakValue: "Peak Value", p90Index: "P90 Index (Guarantee)", nationalVariability: "Nat. Variability"
+                }
+            },
+            es: {
+                title: "Solar Colombia | Dashboard de Radiación",
+                headerTitle1: "Solar",
+                headerTitle2: "Colombia",
+                headerSubtitle: "Análisis Espacial de Radiación • Red de estaciones IDEAM",
+                btnPlay: "Reproducir Año",
+                btnPause: "Pausar",
+                monthSelector: {
+                    ENE: "Enero", FEB: "Febrero", MAR: "Marzo", ABR: "Abril",
+                    MAY: "Mayo", JUN: "Junio", JUL: "Julio", AGO: "Agosto",
+                    SEP: "Septiembre", OCT: "Octubre", NOV: "Noviembre", DIC: "Diciembre",
+                    Annual: "Promedio Anual"
+                },
+                btnStations: "Estaciones",
+                spatialAnalysis: "Análisis Espacial",
+                methodology: "Metodología",
+                model: "Modelo",
+                grid: "Malla",
+                gridPoints: "8,000 Puntos",
+                footnote: "Los valores fuera del límite nacional han sido removidos mediante máscara geográfica para precisión territorial.",
+                initError: "Error de Inicialización",
+                loadError: "Error al cargar recursos",
+                solarPotential: "Potencial Solar",
+                potentials: {
+                    Bajo: "Bajo", Moderado: "Moderado", Alto: "Alto", Excelente: "Excelente"
+                },
+                stats: {
+                    average: "Promedio", maximum: "Máximo", regionalLeader: "Líder Regional",
+                    peakValue: "Valor Pico", p90Index: "Índice P90 (Garantía)", nationalVariability: "Variabilidad Nac."
+                }
+            },
+            de: {
+                title: "Solar Kolumbien | Strahlungs-Dashboard",
+                headerTitle1: "Solar",
+                headerTitle2: "Kolumbien",
+                headerSubtitle: "Räumliche Strahlungsanalyse • IDEAM-Stationsnetz",
+                btnPlay: "Jahr abspielen",
+                btnPause: "Pause",
+                monthSelector: {
+                    ENE: "Januar", FEB: "Februar", MAR: "März", ABR: "April",
+                    MAY: "Mai", JUN: "Juni", JUL: "Juli", AGO: "August",
+                    SEP: "September", OCT: "Oktober", NOV: "November", DIC: "Dezember",
+                    Annual: "Jahresdurchschnitt"
+                },
+                btnStations: "Stationen",
+                spatialAnalysis: "Räumliche Analyse",
+                methodology: "Methodik",
+                model: "Modell",
+                grid: "Gitter",
+                gridPoints: "8.000 Punkte",
+                footnote: "Werte außerhalb der Landesgrenzen wurden mittels geografischer Maskierung für territoriale Präzision entfernt.",
+                initError: "Initialisierungsfehler",
+                loadError: "Fehler beim Laden der Ressourcen",
+                solarPotential: "Solarpotenzial",
+                potentials: {
+                    Bajo: "Niedrig", Moderado: "Moderat", Alto: "Hoch", Excelente: "Exzellent"
+                },
+                stats: {
+                    average: "Durchschnitt", maximum: "Maximum", regionalLeader: "Regionaler Führer",
+                    peakValue: "Spitzenwert", p90Index: "P90-Index (Garantie)", nationalVariability: "Nat. Variabilität"
+                }
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.getElementById('lang-selector').value = lang;
+            
+            // Update static elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerText = translations[lang][key];
+                }
+            });
+
+            // Update Page Title
+            document.title = translations[lang].title;
+
+            // Update Month Selector
+            const selector = document.getElementById('month-selector');
+            const currentValue = selector.value;
+            selector.innerHTML = '';
+            monthsOrder.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.innerText = translations[lang].monthSelector[month];
+                selector.appendChild(option);
+            });
+            selector.value = currentValue;
+
+            // Update Play Button text
+            const btnPlay = document.getElementById('btn-play');
+            if (isPlaying) {
+                btnPlay.querySelector('span').innerText = translations[lang].btnPause;
+            } else {
+                btnPlay.querySelector('span').innerText = translations[lang].btnPlay;
+            }
+
+            // Update current map/stats
+            if (window.globalData && window.krigingData) {
+                updateMap(currentMonth);
+            }
+        }
 
         async function initializeMap() {
             try {
@@ -170,7 +320,7 @@
                     fetch('kriging_data.json')
                 ]);
                 
-                if (!csvRes.ok || !krigingRes.ok) throw new Error('Error al cargar recursos');
+                if (!csvRes.ok || !krigingRes.ok) throw new Error(translations[currentLang].loadError);
                 
                 const csvText = await csvRes.text();
                 window.globalData = parseCSV(csvText);
@@ -182,7 +332,7 @@
                 document.getElementById('map-container').innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full text-red-400 p-8 text-center">
                         <i class="fas fa-triangle-exclamation text-4xl mb-4"></i>
-                        <p class="font-bold">Error de Inicialización</p>
+                        <p class="font-bold">${translations[currentLang].initError}</p>
                         <p class="text-xs opacity-60 mt-2">${error.message}</p>
                     </div>`;
             }
@@ -350,17 +500,17 @@
             const p90 = values[Math.floor(values.length * 0.1)];
             
             // Umbrales oficiales IDEAM/UPME para Colombia
-            let potential = 'Bajo';
-            let color = 'text-red-400';
-            let bg = 'bg-red-500/10';
-            
             if (mean > 5.5) { 
-                potential = 'Excelente'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; 
+                potentialKey = 'Excelente'; color = 'text-emerald-400'; bg = 'bg-emerald-500/10'; 
             } else if (mean > 4.5) { 
-                potential = 'Alto'; color = 'text-orange-400'; bg = 'bg-orange-500/10'; 
+                potentialKey = 'Alto'; color = 'text-orange-400'; bg = 'bg-orange-500/10'; 
             } else if (mean > 3.5) { 
-                potential = 'Moderado'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; 
+                potentialKey = 'Moderado'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; 
+            } else {
+                potentialKey = 'Bajo'; color = 'text-red-400'; bg = 'bg-red-500/10';
             }
+            
+            const potentialTranslated = translations[currentLang].potentials[potentialKey];
 
             // 2. Líder Regional (Departamento con el valor pico más alto)
             let maxStationVal = -1;
@@ -375,23 +525,24 @@
             });
 
             const leader = { name: leaderDept, val: maxStationVal };
+            const t = translations[currentLang].stats;
 
             // 3. Renderizado del Panel
             document.getElementById('stats-container').innerHTML = `
                 <!-- Badge de Potencial -->
                 <div class="${bg} p-2.5 rounded-xl mb-2 border border-white/5 text-center transition-all">
-                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-widest">Potencial Solar</p>
-                    <p class="text-lg font-black ${color}">${potential}</p>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 mb-0.5 tracking-widest">${translations[currentLang].solarPotential}</p>
+                    <p class="text-lg font-black ${color}">${potentialTranslated}</p>
                 </div>
                 
                 <!-- KPIs Principales -->
                 <div class="grid grid-cols-2 gap-2 mb-2">
                     <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Promedio</p>
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">${t.average}</p>
                         <p class="text-sm font-bold text-white">${mean.toFixed(2)}</p>
                     </div>
                     <div class="bg-white/5 p-2 rounded-xl border border-white/5 text-center">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Máximo</p>
+                        <p class="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">${t.maximum}</p>
                         <p class="text-sm font-bold text-white">${max.toFixed(2)}</p>
                     </div>
                 </div>
@@ -399,12 +550,12 @@
                 <!-- Líder Departamental -->
                 <div class="mb-2">
                     <h4 class="text-[9px] uppercase font-bold text-slate-500 mb-2 tracking-widest flex items-center gap-2">
-                        <i class="fas fa-crown text-yellow-500 text-[8px]"></i> Líder Regional
+                        <i class="fas fa-crown text-yellow-500 text-[8px]"></i> ${t.regionalLeader}
                     </h4>
                     <div class="p-2 bg-gradient-to-br from-white/10 to-transparent rounded-xl border border-white/10 flex items-center justify-between">
                         <div class="flex flex-col">
                             <span class="text-[12px] font-bold text-white tracking-tight">${leader.name}</span>
-                            <span class="text-[8px] uppercase font-bold text-slate-500">Valor Pico</span>
+                            <span class="text-[8px] uppercase font-bold text-slate-500">${t.peakValue}</span>
                         </div>
                         <div class="text-right">
                             <span class="text-base font-black text-orange-400">${leader.val.toFixed(2)}</span>
@@ -416,7 +567,7 @@
                 <!-- Eficiencia y Calidad -->
                 <div class="space-y-2 pt-1 border-t border-white/5">
                     <div class="flex justify-between items-center text-[9px]">
-                        <span class="text-slate-400 uppercase font-bold text-[9px]">Índice P90 (Garantía)</span>
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">${t.p90Index}</span>
                         <span class="font-bold text-emerald-400">${p90.toFixed(2)}</span>
                     </div>
                     <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
@@ -424,7 +575,7 @@
                     </div>
                     
                     <div class="flex justify-between items-center text-[9px]">
-                        <span class="text-slate-400 uppercase font-bold text-[9px]">Variabilidad Nac.</span>
+                        <span class="text-slate-400 uppercase font-bold text-[9px]">${t.nationalVariability}</span>
                         <span class="font-bold text-orange-400">${(max-min).toFixed(2)}</span>
                     </div>
                 </div>
@@ -437,7 +588,7 @@
             if (isPlaying) {
                 btn.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-400');
                 btn.classList.remove('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
-                btn.innerHTML = '<i class="fas fa-pause"></i><span>Pausar</span>';
+                btn.innerHTML = `<i class="fas fa-pause"></i><span>${translations[currentLang].btnPause}</span>`;
                 playInterval = setInterval(() => {
                     let next = (monthsOrder.indexOf(currentMonth) + 1) % 12;
                     updateMap(monthsOrder[next]);
@@ -446,7 +597,7 @@
                 clearInterval(playInterval);
                 btn.classList.remove('bg-red-500/10', 'border-red-500/20', 'text-red-400');
                 btn.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
-                btn.innerHTML = '<i class="fas fa-play"></i><span>Reproducir Año</span>';
+                btn.innerHTML = `<i class="fas fa-play"></i><span>${translations[currentLang].btnPlay}</span>`;
             }
         }
 
@@ -457,7 +608,10 @@
             updateMap(currentMonth);
         }
 
-        document.addEventListener('DOMContentLoaded', initializeMap);
+        document.addEventListener('DOMContentLoaded', () => {
+            setLanguage('en');
+            initializeMap();
+        });
     </script>
 </body>
 </html>
