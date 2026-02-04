@@ -1,6 +1,6 @@
 # ☀️ Solar Colombia | Radiation Dashboard
 
-![Preview](preview.png)
+![alt text](image.png)
 
 ## 📌 Description
 **Solar Colombia** is an interactive geospatial analysis platform designed to visualize and analyze solar radiation potential across the Colombian territory. Using historical data from the **IDEAM** station network, the project applies advanced interpolation algorithms (**Kriging**) to generate continuous radiation surfaces, allowing for the identification of areas with the highest suitability for photovoltaic energy projects.
