@@ -1,13 +1,6 @@
 # ☀️ Solar Colombia | Radiation Dashboard
 
-**Read this in other languages:**  
-[![English](https://img.shields.io/badge/Language-English-blue)](#-solar-colombia--radiation-dashboard) | 
-[![Deutsch](https://img.shields.io/badge/Language-Deutsch-orange)](docs/README.de.md) | 
-[![Español](https://img.shields.io/badge/Language-Español-red)](docs/README.es.md)
-
----
-
-![alt text](image.png)
+![alt text](../image.png)
 
 ## 📌 Description
 **Solar Colombia** is an interactive geospatial analysis platform designed to visualize and analyze solar radiation potential across the Colombian territory. Using historical data from the **IDEAM** station network, the project applies advanced interpolation algorithms (**Kriging**) to generate continuous radiation surfaces, allowing for the identification of areas with the highest suitability for photovoltaic energy projects.
