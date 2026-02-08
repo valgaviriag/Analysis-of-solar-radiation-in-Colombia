@@ -39,10 +39,11 @@
 
 ## 📂 Project Structure
 - `index.html`: Main dashboard with multi-language support and visualization logic.
+- `script.js`: Contains the dashboard logic and interactivity.
 - `kriging_interpolation.py`: Python script to process CSV data and generate the interpolated grid.
 - `radiation_data.csv`: Station data (Monthly radiation and annual average).
 - `colombia.json`: National boundary GeoJSON for clipping the interpolation.
-- `kriging_data.json`: Processed interpolation results for dashboard consumption.
+- `dashboard_data.json`: Processed interpolation results for dashboard consumption.
 - `convert_units.py`: Utility for unit normalization (Wh/m² to kWh/m²).
 
 ## 📊 Methodology

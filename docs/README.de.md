@@ -32,10 +32,11 @@
 
 ## 📂 Projektstruktur
 - `index.html`: Haupt-Dashboard mit mehrsprachiger Unterstützung und Visualisierungslogik.
+- `script.js`: Enthält die Dashboard-Logik und Interaktivität.
 - `kriging_interpolation.py`: Python-Skript zur Verarbeitung von CSV-Daten und zur Erzeugung des interpolierten Gitters.
 - `radiation_data.csv`: Stationsdaten (Monatliche Strahlung und Jahresdurchschnitt).
 - `colombia.json`: GeoJSON der nationalen Grenze für den Ausschnitt der Interpolation.
-- `kriging_data.json`: Verarbeitete Interpolationsergebnisse für die Nutzung im Dashboard.
+- `dashboard_data.json`: Verarbeitete Interpolationsergebnisse für die Nutzung im Dashboard.
 - `convert_units.py`: Utility zur Normalisierung von Einheiten (Wh/m² zu kWh/m²).
 
 ## 📊 Methodik
